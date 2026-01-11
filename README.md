@@ -25,11 +25,11 @@ UCP is an open standard enabling seamless commerce interoperability between plat
 
 ```mermaid
 graph LR
-    A[Browser] --> B[Firebase Hosting<br/>ucp-demo.web.app]
-    B --> C[Static Files<br/>HTML/CSS/JS]
-    A --> D[Cloudflare Worker<br/>ucp-demo-api.hemanthhm.workers.dev]
-    D --> E[/.well-known/ucp]
-    D --> F[/api/shopping/*]
+    A[Browser] --> B["Firebase Hosting<br/>ucp-demo.web.app"]
+    B --> C["Static Files<br/>HTML/CSS/JS"]
+    A --> D["Cloudflare Worker<br/>ucp-demo-api.hemanthhm.workers.dev"]
+    D --> E["Discovery API"]
+    D --> F["Shopping API"]
 ```
 
 **How it works:**
