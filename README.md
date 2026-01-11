@@ -32,11 +32,28 @@ graph LR
     D --> F["Shopping API"]
 ```
 
-**How it works:**
-1. **Frontend** served from Firebase Hosting (static HTML/CSS/JS)
-2. **API calls** go to Cloudflare Worker (serverless, in-memory)
-3. **Discovery** at `/.well-known/ucp` returns merchant capabilities
-4. **Checkout flow** uses REST API for create → update → complete
+### Checkout Flow
+
+```mermaid
+sequenceDiagram
+    participant B as Browser
+    participant API as Cloudflare Worker
+
+    B->>API: GET /.well-known/ucp
+    API-->>B: Discovery profile (capabilities, payment handlers)
+
+    B->>API: GET /api/shopping/products
+    API-->>B: Product catalog
+
+    B->>API: POST /api/shopping/checkout-sessions
+    API-->>B: Checkout session (id, line_items, totals)
+
+    B->>API: PUT /api/shopping/checkout-sessions/:id
+    API-->>B: Updated session (buyer_info, payment)
+
+    B->>API: POST /api/shopping/checkout-sessions/:id/complete
+    API-->>B: Completed order
+```
 
 ## Local Development
 
