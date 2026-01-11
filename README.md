@@ -23,13 +23,20 @@ UCP is an open standard enabling seamless commerce interoperability between plat
 
 ## Architecture
 
+```mermaid
+graph LR
+    A[Browser] --> B[Firebase Hosting<br/>ucp-demo.web.app]
+    B --> C[Static Files<br/>HTML/CSS/JS]
+    A --> D[Cloudflare Worker<br/>ucp-demo-api.hemanthhm.workers.dev]
+    D --> E[/.well-known/ucp]
+    D --> F[/api/shopping/*]
 ```
-┌─────────────────────┐     ┌──────────────────────────────────┐
-│ Firebase Hosting    │────▶│ Cloudflare Worker                │
-│ (Static Frontend)   │     │ (API Backend)                    │
-│ ucp-demo.web.app    │     │ ucp-demo-api.hemanthhm.workers.dev│
-└─────────────────────┘     └──────────────────────────────────┘
-```
+
+**How it works:**
+1. **Frontend** served from Firebase Hosting (static HTML/CSS/JS)
+2. **API calls** go to Cloudflare Worker (serverless, in-memory)
+3. **Discovery** at `/.well-known/ucp` returns merchant capabilities
+4. **Checkout flow** uses REST API for create → update → complete
 
 ## Local Development
 
