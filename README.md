@@ -40,19 +40,6 @@ npm run dev
 # Open http://localhost:3000
 ```
 
-## Deployment
-
-### Frontend (Firebase)
-```bash
-firebase deploy --only hosting --project xkcd-175e0
-```
-
-### Backend (Cloudflare Worker)
-```bash
-cd worker
-npx wrangler deploy
-```
-
 ## API Endpoints
 
 | Endpoint | Method | Description |
