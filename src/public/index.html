@@ -1,20 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>UCP - Universal Commerce Protocol</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
+
 <body>
   <!-- ========================================================================
        Landing Page
        ======================================================================== -->
   <div id="landing" class="landing">
     <nav class="landing-nav">
-      <div class="landing-logo">&#9670; UCP</div>
+      <div class="landing-logo">&#9670; AI Gadgets</div>
       <div class="landing-nav-links">
-        <a href="https://github.com/Universal-Commerce-Protocol/ucp" target="_blank">GitHub</a>
+        <a href="https://ucp.dev" target="_blank">Learn about UCP</a>
         <a href="/.well-known/ucp" target="_blank">Discovery</a>
         <button class="btn btn-primary" onclick="showDemo()">Try Demo</button>
       </div>
@@ -23,80 +25,57 @@
     <div class="landing-hero">
       <div class="landing-badge">
         <span class="landing-badge-dot"></span>
-        Open Standard
+        UCP Demo
       </div>
-      <h1 class="landing-title">Universal Commerce Protocol</h1>
+      <h1 class="landing-title">UCP Demo</h1>
       <p class="landing-subtitle">
-        An open standard for seamless commerce interoperability between platforms,
-        AI agents, and businesses. Enable any platform to complete purchases on any merchant.
+        This interactive demo shows how the Universal Commerce Protocol works.
+        Browse products, checkout via chat, and toggle Debug Mode to see the actual UCP API calls in real-time.
       </p>
       <div class="landing-cta">
         <button class="btn btn-primary" onclick="showDemo()">Try Demo &rarr;</button>
-        <a href="/.well-known/ucp" target="_blank" class="btn btn-secondary">View Discovery</a>
+        <a href="https://ucp.dev" target="_blank" class="btn btn-secondary">Learn More at UCP.dev</a>
       </div>
     </div>
 
     <div class="landing-features">
       <div class="feature-card">
-        <div class="feature-icon">01</div>
+        <div class="feature-icon">✓</div>
         <h3 class="feature-title">Discovery</h3>
         <p class="feature-desc">
-          Platforms discover merchant capabilities via <code>/.well-known/ucp</code>.
-          No manual integration required.
+          <strong>Implemented:</strong> <code>/.well-known/ucp</code> endpoint returns merchant capabilities, payment
+          handlers, and API endpoints.
         </p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">02</div>
+        <div class="feature-icon">✓</div>
         <h3 class="feature-title">Checkout Sessions</h3>
         <p class="feature-desc">
-          Standardized checkout flow with line items, buyer info, and payment selection.
-          Works across any platform.
+          <strong>Implemented:</strong> Full checkout flow with create, update, and complete operations. Real API calls
+          visible in debug mode.
         </p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">03</div>
-        <h3 class="feature-title">Payment Handlers</h3>
+        <div class="feature-icon">⚡</div>
+        <h3 class="feature-title">What's Mocked</h3>
         <p class="feature-desc">
-          Pluggable payment instruments. Platforms select from available options
-          without knowing implementation details.
+          Payment processing uses test tokens. No real charges. In-memory storage resets on each session.
         </p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">04</div>
-        <h3 class="feature-title">Agent-Ready</h3>
+        <div class="feature-icon">→</div>
+        <h3 class="feature-title">What's Next</h3>
         <p class="feature-desc">
-          Built for AI agents to complete purchases on behalf of users.
-          Supports MCP, A2A, and REST transports.
+          Real payment gateways, persistent orders, shipping integration. Visit
+          <a href="https://ucp.dev" target="_blank" style="text-decoration: underline;">ucp.dev</a> for the full spec.
         </p>
       </div>
     </div>
 
-    <section class="landing-section">
-      <h2 class="landing-section-title">Discovery Response</h2>
-      <div class="landing-code">
-        <pre><span class="comment">// GET /.well-known/ucp</span>
-{
-  <span class="key">"ucp"</span>: {
-    <span class="key">"version"</span>: <span class="string">"2026-01-11"</span>,
-    <span class="key">"capabilities"</span>: [
-      { <span class="key">"name"</span>: <span class="string">"dev.ucp.shopping.checkout"</span> }
-    ]
-  },
-  <span class="key">"merchant"</span>: {
-    <span class="key">"name"</span>: <span class="string">"UCP Demo Shop"</span>,
-    <span class="key">"description"</span>: <span class="string">"Fresh flowers delivered"</span>
-  },
-  <span class="key">"endpoints"</span>: {
-    <span class="key">"checkout_sessions"</span>: <span class="string">"/api/shopping/checkout-sessions"</span>
-  },
-  <span class="key">"payment_handlers"</span>: [...]
-}</pre>
-      </div>
-    </section>
-
     <footer class="landing-footer">
-      <span>&copy; 2025 Universal Commerce Protocol</span>
-      <span>Open Source - MIT License</span>
+      <span>&copy; 2025 UCP Demo</span>
+      <span>Built with &lt;3 by <a href="https://h3manth.com" target="_blank">Hemanth HM</a></span>
+      <span><a href="https://ucp.dev" target="_blank">Universal Commerce Protocol</a></span>
     </footer>
   </div>
 
@@ -155,13 +134,8 @@
 
         <!-- Chat Input -->
         <div class="chat-input-container">
-          <input
-            type="text"
-            id="chat-input"
-            class="chat-input"
-            placeholder="Type a message..."
-            onkeypress="handleChatKeypress(event)"
-          >
+          <input type="text" id="chat-input" class="chat-input" placeholder="Type a message..."
+            onkeypress="handleChatKeypress(event)">
           <button class="chat-send-btn" onclick="sendMessage()">
             <span>&#10148;</span>
           </button>
@@ -219,6 +193,7 @@
     <p id="loading-message">Loading...</p>
   </div>
 
-  <script src="/app.js"></script>
+  <script src="/app.js?v=4"></script>
 </body>
+
 </html>

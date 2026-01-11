@@ -37,14 +37,15 @@ const state = {
 };
 
 const productImages = {
-  'rose-bouquet': 'https://images.unsplash.com/photo-1518882605630-8eb7c1f20667?w=200&h=200&fit=crop',
-  'tulip-arrangement': 'https://images.unsplash.com/photo-1520763185298-1b434c919102?w=200&h=200&fit=crop',
-  'orchid-plant': 'https://images.unsplash.com/photo-1566873535350-a3f5d4a804b7?w=200&h=200&fit=crop',
-  'sunflower-bunch': 'https://images.unsplash.com/photo-1597848212624-a19eb35e2651?w=200&h=200&fit=crop',
-  'mixed-wildflowers': 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=200&h=200&fit=crop',
+  'ai-voice-assistant': 'https://images.unsplash.com/photo-1543512214-318c7553f230?w=200&h=200&fit=crop',
+  'neural-earbuds': 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=200&h=200&fit=crop',
+  'smart-glasses': 'https://images.unsplash.com/photo-1574944985070-8f3ebc6b79d2?w=200&h=200&fit=crop',
+  'robot-companion': 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=200&h=200&fit=crop',
+  'brain-band': 'https://images.unsplash.com/photo-1589254065878-42c9da997008?w=200&h=200&fit=crop',
 };
 
-const API_BASE = '/api/shopping';
+const API_BASE = 'https://ucp-demo-api.hemanthhm.workers.dev/api/shopping';
+const DISCOVERY_URL = 'https://ucp-demo-api.hemanthhm.workers.dev/.well-known/ucp';
 
 // ============================================================================
 // API with Debug Logging
@@ -54,8 +55,11 @@ async function fetchApi(method, endpoint, body = null) {
   const startTime = Date.now();
   const requestId = Math.random().toString(36).substr(2, 9);
 
+  // Extract clean path for display (remove domain)
+  const displayPath = endpoint.replace(/^https?:\/\/[^\/]+/, '');
+
   // Log to debug
-  addTimelineEntry(`${method} ${endpoint}`);
+  addTimelineEntry(`${method} ${displayPath}`);
 
   const options = {
     method,
@@ -68,7 +72,7 @@ async function fetchApi(method, endpoint, body = null) {
 
   // Show API call in chat if in debug mode or during checkout
   if (state.debugMode || state.chatPhase.startsWith('checkout')) {
-    addApiCallMessage(method, endpoint, body);
+    addApiCallMessage(method, displayPath, body);
   }
 
   try {
@@ -259,7 +263,7 @@ function addToCart(productId) {
   const total = getCartTotal();
   assistantSay(
     `Added <strong>${product.name}</strong> to your cart.<br>` +
-      `<span style="color: var(--text-muted)">Cart total: ${formatCurrency(total)}</span>`
+    `<span style="color: var(--text-muted)">Cart total: ${formatCurrency(total)}</span>`
   );
 
   // Update quick actions
@@ -466,7 +470,7 @@ async function selectPayment(instrumentId) {
     await sleep(500);
     await assistantSay(
       `Your order <strong>${state.checkout.order.id}</strong> has been placed! ` +
-        `Total charged: <strong>${formatCurrency(state.checkout.totals.total)}</strong>`
+      `Total charged: <strong>${formatCurrency(state.checkout.totals.total)}</strong>`
     );
 
     state.chatPhase = 'completed';
@@ -517,10 +521,10 @@ async function processUserMessage(text) {
   } else if (lower.includes('help')) {
     await assistantSay(
       "I can help you shop! Here's what you can do:<br>" +
-        "• Click products on the left to add them to your cart<br>" +
-        "• Say <strong>checkout</strong> to start the checkout process<br>" +
-        "• Say <strong>clear cart</strong> to empty your cart<br>" +
-        "• Toggle <strong>Debug Mode</strong> to see UCP API calls"
+      "• Click products on the left to add them to your cart<br>" +
+      "• Say <strong>checkout</strong> to start the checkout process<br>" +
+      "• Say <strong>clear cart</strong> to empty your cart<br>" +
+      "• Toggle <strong>Debug Mode</strong> to see UCP API calls"
     );
   } else if (lower.includes('cart')) {
     if (state.cart.length === 0) {
@@ -622,7 +626,7 @@ function addTimelineEntry(event, type = 'info') {
 // ============================================================================
 
 async function loadDiscovery() {
-  const response = await fetch('/.well-known/ucp');
+  const response = await fetch(DISCOVERY_URL);
   state.discoveryProfile = await response.json();
 }
 
@@ -650,8 +654,8 @@ document.getElementById('discovery-modal').addEventListener('click', (e) => {
 async function initChat() {
   await assistantSay(
     "Welcome to the <strong>UCP Demo Shop</strong>.<br><br>" +
-      "I'll help you checkout using the <strong>Universal Commerce Protocol</strong>. " +
-      "Click on a product below to add it to your cart, then say <strong>checkout</strong> when you're ready.",
+    "I'll help you checkout using the <strong>Universal Commerce Protocol</strong>. " +
+    "Click on a product below to add it to your cart, then say <strong>checkout</strong> when you're ready.",
     null,
     800
   );

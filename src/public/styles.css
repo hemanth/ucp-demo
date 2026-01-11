@@ -343,11 +343,11 @@ a {
   transition: all 0.3s;
 }
 
-.debug-toggle input:checked + .toggle-slider {
+.debug-toggle input:checked+.toggle-slider {
   background: var(--white);
 }
 
-.debug-toggle input:checked + .toggle-slider::after {
+.debug-toggle input:checked+.toggle-slider::after {
   left: 21px;
   background: var(--black);
 }
@@ -405,9 +405,23 @@ a {
 
 .products-grid-chat {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 0.75rem;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
   margin-top: 0.75rem;
+  width: 100%;
+}
+
+/* Make the message containing products take full width */
+.message.assistant:has(.products-grid-chat) {
+  max-width: 100%;
+  width: 100%;
+}
+
+/* Responsive: stack products on smaller screens */
+@media (max-width: 768px) {
+  .products-grid-chat {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
 }
 
 .product-card-chat {
@@ -552,8 +566,15 @@ a {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .message.assistant {
@@ -615,10 +636,25 @@ a {
   text-transform: uppercase;
 }
 
-.api-method.post { background: var(--success); color: var(--black); }
-.api-method.get { background: var(--gray-300); color: var(--black); }
-.api-method.put { background: var(--warning); color: var(--black); }
-.api-method.delete { background: var(--danger); color: var(--white); }
+.api-method.post {
+  background: var(--success);
+  color: var(--black);
+}
+
+.api-method.get {
+  background: var(--gray-300);
+  color: var(--black);
+}
+
+.api-method.put {
+  background: var(--warning);
+  color: var(--black);
+}
+
+.api-method.delete {
+  background: var(--danger);
+  color: var(--white);
+}
 
 .api-endpoint {
   color: var(--text-muted);
@@ -677,12 +713,27 @@ a {
   animation: typingBounce 1.4s infinite ease-in-out both;
 }
 
-.typing-dot:nth-child(1) { animation-delay: -0.32s; }
-.typing-dot:nth-child(2) { animation-delay: -0.16s; }
+.typing-dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
 
 @keyframes typingBounce {
-  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-  40% { transform: scale(1); opacity: 1; }
+
+  0%,
+  80%,
+  100% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 /* Quick Actions */
@@ -915,8 +966,15 @@ a {
   font-size: 0.6rem;
 }
 
-.status-badge.success { background: var(--success); color: var(--black); }
-.status-badge.error { background: var(--danger); color: var(--white); }
+.status-badge.success {
+  background: var(--success);
+  color: var(--black);
+}
+
+.status-badge.error {
+  background: var(--danger);
+  color: var(--white);
+}
 
 /* ============================================================================
    Modal
@@ -1041,7 +1099,9 @@ a {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 #loading-message {

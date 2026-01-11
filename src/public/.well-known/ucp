@@ -1,0 +1,21 @@
+{
+  "ucp": {
+    "version": "2026-01-11",
+    "services": {
+      "dev.ucp.shopping": {
+        "version": "2026-01-11",
+        "rest": { "endpoint": "https://ucp-demo-api.hemanthhm.workers.dev/api/shopping" },
+        "capabilities": [
+          { "name": "dev.ucp.shopping.checkout", "version": "2026-01-11" },
+          { "name": "dev.ucp.shopping.order", "version": "2026-01-11" }
+        ]
+      }
+    }
+  },
+  "payment": {
+    "handlers": [
+      { "id": "mock-payment-handler", "name": "Mock Payment", "type": "first_party" },
+      { "id": "card-handler", "name": "Credit/Debit Card", "type": "third_party" }
+    ]
+  }
+}
