@@ -2,6 +2,9 @@
 
 An interactive demo showcasing the [Universal Commerce Protocol (UCP)](https://ucp.dev) – an open standard for AI agents and platforms to complete purchases on any UCP-enabled merchant.
 
+https://github.com/user-attachments/assets/0c4879a7-2dc5-4693-bffe-d34562cde3a7
+
+
 🔗 **Live Demo:** [https://ucp-demo.web.app](https://ucp-demo.web.app)
 
 ## What is UCP?
