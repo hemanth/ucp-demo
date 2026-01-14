@@ -1205,3 +1205,228 @@ a {
 .chat-form-submit:hover {
   background: var(--gray-200);
 }
+
+/* ============================================================================
+   Mobile Responsive Styles
+   ============================================================================ */
+
+@media (max-width: 768px) {
+
+  /* Landing Nav */
+  .landing-nav {
+    padding: 1rem 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .landing-nav-links {
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .landing-nav-links a {
+    font-size: 0.8rem;
+  }
+
+  /* Landing Hero */
+  .landing-hero {
+    padding: 2rem 1rem;
+  }
+
+  .landing-title {
+    font-size: 2rem;
+  }
+
+  .landing-subtitle {
+    font-size: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .landing-cta {
+    flex-direction: column;
+    width: 100%;
+    padding: 0 1rem;
+  }
+
+  .landing-cta .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Landing Features */
+  .landing-features {
+    grid-template-columns: 1fr;
+  }
+
+  .feature-card {
+    padding: 1.5rem;
+  }
+
+  /* Landing Sections */
+  .landing-section {
+    padding: 2rem 1rem;
+  }
+
+  .landing-code pre {
+    font-size: 0.65rem;
+  }
+
+  /* Landing Footer */
+  .landing-footer {
+    padding: 1.5rem 1rem;
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+
+  /* Header */
+  .header-content {
+    padding: 0.75rem 1rem;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .header-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .debug-toggle {
+    order: 1;
+  }
+
+  .discovery-btn,
+  .back-btn {
+    font-size: 0.75rem;
+    padding: 0.4rem 0.75rem;
+  }
+
+  /* Chat Panel */
+  .chat-panel {
+    max-width: 100%;
+  }
+
+  .chat-header {
+    padding: 0.75rem 1rem;
+  }
+
+  .chat-messages {
+    padding: 1rem;
+  }
+
+  .message {
+    max-width: 90%;
+  }
+
+  .message-bubble {
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+  }
+
+  /* Products Grid in Chat */
+  .products-grid-chat {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .product-card-chat .product-info {
+    padding: 0.5rem;
+  }
+
+  .product-card-chat .product-name {
+    font-size: 0.7rem;
+  }
+
+  .product-card-chat .product-price {
+    font-size: 0.8rem;
+  }
+
+  /* Quick Actions */
+  .quick-actions {
+    padding: 0.5rem 1rem;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .quick-action-btn {
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    padding: 0.4rem 0.75rem;
+  }
+
+  /* Chat Input */
+  .chat-input-container {
+    padding: 0.75rem 1rem;
+  }
+
+  .chat-input {
+    padding: 0.625rem 1rem;
+    font-size: 16px;
+    /* Prevent zoom on iOS */
+  }
+
+  .send-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 0.9rem;
+  }
+
+  /* API Call */
+  .api-call-header {
+    padding: 0.4rem 0.5rem;
+    font-size: 0.65rem;
+    flex-wrap: wrap;
+  }
+
+  .api-call-body {
+    padding: 0.5rem;
+    font-size: 0.6rem;
+    max-height: 80px;
+  }
+
+  /* Chat Forms */
+  .chat-form {
+    padding: 0.75rem;
+  }
+
+  .chat-form-group input {
+    padding: 0.5rem 0.75rem;
+    font-size: 16px;
+    /* Prevent zoom on iOS */
+  }
+
+  /* Cart Indicator */
+  .cart-indicator {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+  }
+}
+
+/* Extra small devices */
+@media (max-width: 480px) {
+  .landing-title {
+    font-size: 1.75rem;
+  }
+
+  .landing-badge {
+    font-size: 0.65rem;
+    padding: 0.4rem 0.75rem;
+  }
+
+  .products-grid-chat {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .message {
+    max-width: 95%;
+  }
+
+  .order-summary-chat {
+    padding: 0.75rem;
+  }
+
+  .order-line {
+    font-size: 0.8rem;
+  }
+}
