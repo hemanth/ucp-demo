@@ -1,103 +1,341 @@
 /**
- * UCP Demo Shop - Chat Interface
+ * UCP Demo — Dual Mode App
  *
- * AI Assistant-style checkout flow with debug mode
- * to show UCP API calls in real-time.
+ * Mode 1: Agent Flow — Step-by-step API explorer showing raw requests/responses
+ * Mode 2: Shop Demo — Chat-style shopping experience powered by UCP APIs
+ *
+ * UCP Spec v2026-04-08
  */
 
+const API_BASE = 'https://ucp-demo-api.hemanthhm.workers.dev/api';
+const DISCOVERY_URL = 'https://ucp-demo-api.hemanthhm.workers.dev/.well-known/ucp';
+
 // ============================================================================
-// Navigation
+// Navigation — Hash-based routing (#agent, #shop)
 // ============================================================================
 
-function showDemo() {
+let currentMode = null;
+let shopInitialized = false;
+let agentInitialized = false;
+
+function showDemo(mode, pushState = true) {
   document.getElementById('landing').style.display = 'none';
-  document.getElementById('demo-app').classList.add('active');
-  init();
+  document.getElementById('agent-app').classList.remove('active');
+  document.getElementById('shop-app').classList.remove('active');
+
+  if (mode === 'agent') {
+    document.getElementById('agent-app').classList.add('active');
+    currentMode = 'agent';
+    if (!agentInitialized) { agentInitialized = true; initAgentFlow(); }
+  } else {
+    document.getElementById('shop-app').classList.add('active');
+    currentMode = 'shop';
+    if (!shopInitialized) { shopInitialized = true; initShopDemo(); }
+  }
+
+  if (pushState) window.location.hash = mode;
+  document.title = `UCP Demo — ${mode === 'agent' ? 'Agent Flow' : 'Shop Demo'}`;
 }
 
-function showLanding() {
+function showLanding(pushState = true) {
   document.getElementById('landing').style.display = 'flex';
-  document.getElementById('demo-app').classList.remove('active');
+  document.getElementById('agent-app').classList.remove('active');
+  document.getElementById('shop-app').classList.remove('active');
+  currentMode = null;
+  if (pushState) history.replaceState(null, '', window.location.pathname);
+  document.title = 'UCP Demo — Universal Commerce Protocol';
+}
+
+function switchMode(mode) {
+  showDemo(mode);
+}
+
+// Route on hash change
+function handleRoute() {
+  const hash = window.location.hash.replace('#', '');
+  if (hash === 'agent' || hash === 'shop') showDemo(hash, false);
+  else showLanding(false);
+}
+
+window.addEventListener('hashchange', handleRoute);
+window.addEventListener('DOMContentLoaded', handleRoute);
+
+// ============================================================================
+// ==================   AGENT FLOW — API EXPLORER   ==========================
+// ============================================================================
+
+const agentState = {
+  currentStep: 0,
+  completed: new Set(),
+  responses: {},
+  cartId: null,
+  checkoutId: null,
+  orderId: null,
+};
+
+const STEPS = [
+  {
+    title: 'Step 1: Discovery',
+    desc: 'Fetch the merchant\'s UCP profile to discover capabilities, payment handlers, and API endpoints.',
+    method: 'GET',
+    path: '/.well-known/ucp',
+    body: null,
+    explain: 'The agent sends a GET request to <code>/.well-known/ucp</code>. The merchant responds with a JSON document listing all UCP capabilities (catalog, cart, checkout, fulfillment, discount, orders), available payment handlers, signing keys, and the API endpoint base URLs.',
+  },
+  {
+    title: 'Step 2: Catalog Search',
+    desc: 'Search the product catalog by text query.',
+    method: 'POST',
+    path: '/api/catalog/search',
+    body: { query: 'AI', page_size: 10 },
+    explain: 'The agent searches the catalog using a text query. The merchant returns matching items with structured data: id, name, description, price, category, availability. The agent uses this to select items for the cart.',
+  },
+  {
+    title: 'Step 3: Create Cart',
+    desc: 'Create a shopping cart with selected items.',
+    method: 'POST',
+    path: '/api/shopping/cart',
+    getBody: () => ({
+      currency: 'USD',
+      items: [
+        { item_id: 'neural-earbuds', quantity: 1 },
+        { item_id: 'ai-voice-assistant', quantity: 2 },
+      ],
+    }),
+    explain: 'The agent creates a server-side cart with item IDs and quantities. The merchant validates items, checks stock, calculates line totals, and returns the full cart with a subtotal. The cart has a 24-hour expiry.',
+  },
+  {
+    title: 'Step 4: Create Checkout Session',
+    desc: 'Convert the cart into a checkout session.',
+    method: 'POST',
+    path: '/api/shopping/checkout-sessions',
+    getBody: () => ({
+      cart_id: agentState.cartId,
+      currency: 'USD',
+      payment: {
+        instruments: [
+          { id: 'inst-mock', handler_id: 'mock-payment-handler', type: 'token', display_name: 'Test Payment' },
+        ],
+      },
+      context: { locale: 'en-US', platform_id: 'ucp-agent-demo' },
+    }),
+    explain: 'The agent converts the cart to a checkout session by passing the <code>cart_id</code>. The merchant returns: line items with pricing, tax calculation, available fulfillment options (shipping/pickup), payment instruments, and links to terms/privacy policies. The checkout status starts as <code>incomplete</code>.',
+  },
+  {
+    title: 'Step 5: Select Fulfillment + Buyer Info',
+    desc: 'Update checkout with shipping selection, buyer details, payment method, and consent.',
+    method: 'PUT',
+    getPath: () => `/api/shopping/checkout-sessions/${agentState.checkoutId}`,
+    getBody: () => ({
+      fulfillment: {
+        selected_option_id: 'express-shipping',
+        shipping_address: {
+          street_address: '123 AI Boulevard',
+          locality: 'San Francisco',
+          region: 'CA',
+          postal_code: '94105',
+          country_code: 'US',
+        },
+      },
+      buyer: { name: 'AI Shopping Agent', email: 'agent@example.com' },
+      payment: { selected_instrument_id: 'inst-mock' },
+      consent: { terms_accepted: true, privacy_accepted: true },
+    }),
+    explain: 'The agent sends a single PUT to update the checkout with: selected fulfillment option (express shipping), shipping address, buyer identity, payment instrument selection, and buyer consent flags. The merchant recalculates totals (with shipping cost) and advances status to <code>ready_for_complete</code>.',
+  },
+  {
+    title: 'Step 6: Apply Discount Code',
+    desc: 'Apply a promo code to get 10% off.',
+    method: 'POST',
+    getPath: () => `/api/shopping/checkout-sessions/${agentState.checkoutId}/discount`,
+    body: { code: 'SAVE10' },
+    explain: 'The agent applies the promo code <code>SAVE10</code>. The merchant validates the code, calculates the 10% discount amount, and returns the updated checkout with recalculated totals. Other codes: <code>FREESHIP</code> (free shipping), <code>FLAT20</code> ($20 off orders over $100).',
+  },
+  {
+    title: 'Step 7: Complete the Order',
+    desc: 'Submit payment and finalize the order.',
+    method: 'POST',
+    getPath: () => `/api/shopping/checkout-sessions/${agentState.checkoutId}/complete`,
+    body: {
+      payment_data: {
+        handler_id: 'mock-payment-handler',
+        token: 'success_token',
+      },
+    },
+    explain: 'The agent submits the payment token. The merchant processes the payment (mock in this demo), creates an order record with a tracking number, and returns the completed checkout. Status changes to <code>completed</code>, payment status to <code>captured</code>. The response includes the new order ID.',
+  },
+  {
+    title: 'Step 8: Retrieve Order',
+    desc: 'Fetch the completed order with tracking details.',
+    method: 'GET',
+    getPath: () => `/api/shopping/orders/${agentState.orderId}`,
+    body: null,
+    explain: 'The agent retrieves the full order details: items, totals, buyer info, fulfillment option, tracking number, discount applied, and timestamps. This endpoint can be polled to check order status updates (pending → processing → shipped → delivered).',
+  },
+];
+
+function initAgentFlow() {
+  renderStep(0);
+}
+
+function goToStep(index) {
+  agentState.currentStep = index;
+  // Update nav
+  document.querySelectorAll('#steps-nav .step-item').forEach((el, i) => {
+    el.classList.toggle('active', i === index);
+  });
+  renderStep(index);
+}
+
+function renderStep(index) {
+  const step = STEPS[index];
+  document.getElementById('api-step-title').textContent = step.title;
+  document.getElementById('api-step-desc').textContent = step.desc;
+
+  const method = step.method;
+  const path = step.getPath ? step.getPath() : step.path;
+  const body = step.getBody ? step.getBody() : step.body;
+
+  document.getElementById('req-method').textContent = method;
+  document.getElementById('req-method').className = `api-method-badge ${method.toLowerCase()}`;
+  document.getElementById('req-url').textContent = path;
+
+  const bodySection = document.getElementById('req-body-section');
+  if (body) {
+    bodySection.style.display = 'block';
+    document.getElementById('req-body').textContent = JSON.stringify(body, null, 2);
+  } else {
+    bodySection.style.display = 'none';
+  }
+
+  // Show cached response if available
+  if (agentState.responses[index]) {
+    const r = agentState.responses[index];
+    showResponse(r.status, r.data, r.duration);
+  } else {
+    document.getElementById('res-status').textContent = '—';
+    document.getElementById('res-status').className = 'api-status-badge';
+    document.getElementById('res-duration').textContent = '';
+    document.getElementById('res-body').innerHTML = '<span class="placeholder">Click "Execute →" to run this step</span>';
+  }
+
+  document.getElementById('api-explanation-body').innerHTML = step.explain;
+
+  // Enable/disable execute button
+  const btn = document.getElementById('execute-btn');
+  const needsPrior = index > 0 && !agentState.completed.has(index - 1);
+  btn.disabled = needsPrior;
+  btn.textContent = agentState.completed.has(index) ? 'Re-run →' : 'Execute →';
+}
+
+async function executeCurrentStep() {
+  const index = agentState.currentStep;
+  const step = STEPS[index];
+  const method = step.method;
+  const path = step.getPath ? step.getPath() : step.path;
+  const body = step.getBody ? step.getBody() : step.body;
+  const fullUrl = path.startsWith('/') ? `https://ucp-demo-api.hemanthhm.workers.dev${path}` : path;
+
+  // Re-render with latest dynamic values
+  document.getElementById('req-url').textContent = path;
+  if (body) document.getElementById('req-body').textContent = JSON.stringify(body, null, 2);
+
+  const btn = document.getElementById('execute-btn');
+  btn.disabled = true;
+  btn.textContent = 'Running...';
+
+  document.getElementById('res-body').innerHTML = '<span class="placeholder">Executing...</span>';
+  document.getElementById('res-status').textContent = '...';
+
+  const start = Date.now();
+  try {
+    const options = { method, headers: { 'Content-Type': 'application/json' } };
+    if (body) options.body = JSON.stringify(body);
+
+    const response = await fetch(fullUrl, options);
+    const data = await response.json();
+    const duration = Date.now() - start;
+
+    // Store state from responses
+    if (index === 2 && data.id) agentState.cartId = data.id;
+    if (index === 3 && data.id) agentState.checkoutId = data.id;
+    if (index === 6 && data.order?.id) agentState.orderId = data.order.id;
+
+    agentState.responses[index] = { status: response.status, data, duration };
+    agentState.completed.add(index);
+
+    showResponse(response.status, data, duration);
+
+    // Update check mark
+    document.getElementById(`check-${index}`).textContent = '✓';
+
+    btn.textContent = 'Re-run →';
+    btn.disabled = false;
+  } catch (error) {
+    document.getElementById('res-body').textContent = `Error: ${error.message}`;
+    document.getElementById('res-status').textContent = 'ERR';
+    document.getElementById('res-status').className = 'api-status-badge error';
+    btn.textContent = 'Retry →';
+    btn.disabled = false;
+  }
+}
+
+function showResponse(status, data, duration) {
+  document.getElementById('res-status').textContent = status;
+  document.getElementById('res-status').className = `api-status-badge ${status < 400 ? 'success' : 'error'}`;
+  document.getElementById('res-duration').textContent = `${duration}ms`;
+  document.getElementById('res-body').textContent = JSON.stringify(data, null, 2);
+}
+
+async function runAllSteps() {
+  for (let i = 0; i < STEPS.length; i++) {
+    goToStep(i);
+    await executeCurrentStep();
+    if (i < STEPS.length - 1) await sleep(300);
+  }
+}
+
+function resetAll() {
+  agentState.currentStep = 0;
+  agentState.completed.clear();
+  agentState.responses = {};
+  agentState.cartId = null;
+  agentState.checkoutId = null;
+  agentState.orderId = null;
+  for (let i = 0; i < 8; i++) document.getElementById(`check-${i}`).textContent = '';
+  goToStep(0);
 }
 
 // ============================================================================
-// State
+// ==================   SHOP DEMO — CHAT EXPERIENCE   ========================
 // ============================================================================
 
-let initialized = false;
-const state = {
+const shopState = {
   products: [],
-  cart: [], // { product, quantity }
+  cart: [],
   checkout: null,
-  discoveryProfile: null,
+  orderId: null,
   debugMode: false,
-  chatPhase: 'welcome', // welcome, browsing, checkout-review, checkout-info, checkout-payment, completed
   timeline: [],
   requests: [],
 };
 
-const productImages = {
-  'ai-voice-assistant': 'https://images.unsplash.com/photo-1543512214-318c7553f230?w=200&h=200&fit=crop',
-  'neural-earbuds': 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=200&h=200&fit=crop',
-  'smart-glasses': 'https://images.unsplash.com/photo-1574944985070-8f3ebc6b79d2?w=200&h=200&fit=crop',
-  'robot-companion': 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=200&h=200&fit=crop',
-  'brain-band': 'https://images.unsplash.com/photo-1589254065878-42c9da997008?w=200&h=200&fit=crop',
-};
-
-const API_BASE = 'https://ucp-demo-api.hemanthhm.workers.dev/api/shopping';
-const DISCOVERY_URL = 'https://ucp-demo-api.hemanthhm.workers.dev/.well-known/ucp';
-
-// ============================================================================
-// API with Debug Logging
-// ============================================================================
-
-async function fetchApi(method, endpoint, body = null) {
+async function fetchShopApi(method, endpoint, body = null) {
   const startTime = Date.now();
-  const requestId = Math.random().toString(36).substr(2, 9);
-
-  // Extract clean path for display (remove domain)
   const displayPath = endpoint.replace(/^https?:\/\/[^\/]+/, '');
-
-  // Log to debug
   addTimelineEntry(`${method} ${displayPath}`);
 
-  const options = {
-    method,
-    headers: { 'Content-Type': 'application/json' },
-  };
-
-  if (body) {
-    options.body = JSON.stringify(body);
-  }
-
-  // Show API call in chat if in debug mode or during checkout
-  if (state.debugMode || state.chatPhase.startsWith('checkout')) {
-    addApiCallMessage(method, displayPath, body);
-  }
+  const options = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) options.body = JSON.stringify(body);
+  if (shopState.debugMode) addApiCallMessage(method, displayPath, body);
 
   try {
     const response = await fetch(endpoint, options);
     const data = await response.json();
     const duration = Date.now() - startTime;
-
-    // Log request
-    state.requests.unshift({
-      id: requestId,
-      method,
-      endpoint,
-      body,
-      status: response.status,
-      response: data,
-      duration,
-      timestamp: new Date().toISOString(),
-    });
-
+    shopState.requests.unshift({ method, endpoint: displayPath, body, status: response.status, response: data, duration, timestamp: new Date().toISOString() });
     updateDebugPanel();
-
-    if (!response.ok) {
-      throw new Error(data.error || `Request failed: ${response.status}`);
-    }
-
+    if (!response.ok) throw new Error(data.error || `Request failed: ${response.status}`);
     return data;
   } catch (error) {
     addTimelineEntry(`Error: ${error.message}`, 'error');
@@ -105,31 +343,24 @@ async function fetchApi(method, endpoint, body = null) {
   }
 }
 
-// ============================================================================
 // Chat Messages
-// ============================================================================
-
 function addMessage(type, content, extra = null) {
   const container = document.getElementById('chat-messages');
   const msg = document.createElement('div');
   msg.className = `message ${type}`;
-
   if (type === 'assistant' || type === 'user') {
     msg.innerHTML = `<div class="message-bubble">${content}</div>`;
-    if (extra) {
-      msg.querySelector('.message-bubble').innerHTML += extra;
-    }
+    if (extra) msg.querySelector('.message-bubble').innerHTML += extra;
   } else {
     msg.innerHTML = content;
   }
-
   container.appendChild(msg);
   container.scrollTop = container.scrollHeight;
 }
 
 function addApiCallMessage(method, endpoint, body) {
   const bodyStr = body ? JSON.stringify(body, null, 2) : '';
-  const html = `
+  addMessage('api-call', `
     <div class="api-call-bubble">
       <div class="api-call-header">
         <span class="api-method ${method.toLowerCase()}">${method}</span>
@@ -137,8 +368,7 @@ function addApiCallMessage(method, endpoint, body) {
       </div>
       ${bodyStr ? `<div class="api-call-body">${escapeHtml(bodyStr)}</div>` : ''}
     </div>
-  `;
-  addMessage('api-call', html);
+  `);
 }
 
 function addTypingIndicator() {
@@ -146,590 +376,325 @@ function addTypingIndicator() {
   const typing = document.createElement('div');
   typing.className = 'message assistant';
   typing.id = 'typing-indicator';
-  typing.innerHTML = `
-    <div class="typing-indicator">
-      <div class="typing-dot"></div>
-      <div class="typing-dot"></div>
-      <div class="typing-dot"></div>
-    </div>
-  `;
+  typing.innerHTML = '<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';
   container.appendChild(typing);
   container.scrollTop = container.scrollHeight;
 }
 
-function removeTypingIndicator() {
-  const el = document.getElementById('typing-indicator');
-  if (el) el.remove();
-}
+function removeTypingIndicator() { const el = document.getElementById('typing-indicator'); if (el) el.remove(); }
 
-async function assistantSay(text, extra = null, delay = 500) {
-  addTypingIndicator();
-  await sleep(delay);
-  removeTypingIndicator();
+async function assistantSay(text, extra = null, delay = 400) {
+  addTypingIndicator(); await sleep(delay); removeTypingIndicator();
   addMessage('assistant', text, extra);
 }
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-function escapeHtml(str) {
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-function formatCurrency(cents) {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(cents / 100);
-}
-
-// ============================================================================
 // Quick Actions
-// ============================================================================
-
 function setQuickActions(actions) {
-  const container = document.getElementById('quick-actions');
-  container.innerHTML = actions
-    .map(
-      (a) => `
-    <button
-      class="quick-action-btn ${a.primary ? 'primary' : ''}"
-      onclick="${a.action}"
-    >${a.label}</button>
-  `
-    )
-    .join('');
+  document.getElementById('quick-actions').innerHTML = actions.map(a =>
+    `<button class="quick-action-btn ${a.primary ? 'primary' : ''}" onclick="${a.action}">${a.label}</button>`
+  ).join('');
+}
+function clearQuickActions() { document.getElementById('quick-actions').innerHTML = ''; }
+
+// Catalog
+async function searchCatalog(query = '') {
+  addMessage('user', query ? `Search: "${query}"` : 'Browse products');
+  try {
+    const results = await fetchShopApi('POST', `${API_BASE}/catalog/search`, { query: query || undefined, page_size: 20 });
+    shopState.products = results.items;
+    if (!results.items.length) { await assistantSay('No products found.'); return; }
+    await assistantSay(`Found <strong>${results.total_count}</strong> product${results.total_count !== 1 ? 's' : ''}:`, renderProductsInChat(results.items));
+    updateBrowsingActions();
+  } catch (e) { await assistantSay(`Search failed: ${e.message}`); }
 }
 
-function clearQuickActions() {
-  document.getElementById('quick-actions').innerHTML = '';
+async function searchByCategory(cat) {
+  addMessage('user', `Filter: ${cat}`);
+  try {
+    const r = await fetchShopApi('POST', `${API_BASE}/catalog/search`, { filters: { category: cat } });
+    shopState.products = r.items;
+    await assistantSay(`${r.total_count} in <strong>${cat}</strong>:`, renderProductsInChat(r.items));
+    updateBrowsingActions();
+  } catch (e) { await assistantSay(`Error: ${e.message}`); }
 }
 
-// ============================================================================
-// Products
-// ============================================================================
-
-async function loadProducts() {
-  const data = await fetchApi('GET', `${API_BASE}/products`);
-  state.products = data.products;
-}
-
-function renderProductsInChat() {
-  const productsHtml = state.products
-    .map(
-      (p) => `
-    <div
-      class="product-card-chat ${!p.in_stock ? 'out-of-stock' : ''}"
-      onclick="${p.in_stock ? `addToCart('${p.id}')` : ''}"
-    >
-      <div class="product-image">
-        <img src="${productImages[p.id] || p.image_url}" alt="${p.name}" />
-      </div>
+function renderProductsInChat(items) {
+  return `<div class="products-grid-chat">${items.map(p => `
+    <div class="product-card-chat ${p.availability !== 'in_stock' ? 'out-of-stock' : ''}"
+         onclick="${p.availability === 'in_stock' ? `addToCart('${p.id}')` : ''}">
+      <div class="product-image"><img src="${p.image_url || ''}" alt="${p.name}" loading="lazy" /></div>
       <div class="product-info">
         <div class="product-name">${p.name}</div>
-        <div class="product-price">${formatCurrency(p.price)}</div>
-        ${!p.in_stock ? '<div class="product-stock">Out of Stock</div>' : ''}
+        <div class="product-price">${formatCurrency(p.price.amount)}</div>
+        <div class="product-category">${p.category || ''}</div>
+        ${p.availability !== 'in_stock' ? '<div class="product-stock">Out of Stock</div>' : ''}
       </div>
     </div>
-  `
-    )
-    .join('');
-
-  return `<div class="products-grid-chat">${productsHtml}</div>`;
+  `).join('')}</div>`;
 }
 
-// ============================================================================
+function updateBrowsingActions() {
+  const a = [];
+  if (shopState.cart.length > 0) {
+    a.push({ label: `Checkout (${shopState.cart.length})`, action: 'startCheckout()', primary: true });
+    a.push({ label: 'View Cart', action: 'viewCart()' });
+  }
+  a.push({ label: '🔍 Search', action: 'promptSearch()' });
+  a.push({ label: '🏠 Smart Home', action: "searchByCategory('smart-home')" });
+  a.push({ label: '⌚ Wearables', action: "searchByCategory('wearables')" });
+  setQuickActions(a);
+}
+
+function promptSearch() { document.getElementById('chat-input').focus(); }
+
 // Cart
-// ============================================================================
-
-function addToCart(productId) {
-  const product = state.products.find((p) => p.id === productId);
-  if (!product || !product.in_stock) return;
-
-  const existing = state.cart.find((i) => i.product.id === productId);
-  if (existing) {
-    existing.quantity++;
-  } else {
-    state.cart.push({ product, quantity: 1 });
-  }
-
+async function addToCart(id) {
+  const p = shopState.products.find(x => x.id === id);
+  if (!p) return;
+  const ex = shopState.cart.find(i => i.id === id);
+  if (ex) ex.quantity++; else shopState.cart.push({ id, name: p.name, price: p.price.amount, quantity: 1 });
   updateCartBadge();
-  updateDebugPanel();
+  addMessage('user', `Add ${p.name}`);
+  const total = shopState.cart.reduce((s, i) => s + i.price * i.quantity, 0);
+  await assistantSay(`Added <strong>${p.name}</strong>. Cart: ${formatCurrency(total)}`);
+  updateBrowsingActions();
+}
 
-  // Chat response
-  addMessage('user', `Add ${product.name}`);
-
-  const total = getCartTotal();
-  assistantSay(
-    `Added <strong>${product.name}</strong> to your cart.<br>` +
-    `<span style="color: var(--text-muted)">Cart total: ${formatCurrency(total)}</span>`
-  );
-
-  // Update quick actions
-  if (state.cart.length > 0) {
-    setQuickActions([
-      { label: 'Checkout', action: 'startCheckout()', primary: true },
-      { label: 'Clear Cart', action: 'clearCart()' },
-    ]);
-  }
-
-  state.chatPhase = 'browsing';
+function viewCart() {
+  if (!shopState.cart.length) { assistantSay("Cart is empty!"); return; }
+  addMessage('user', 'View cart');
+  const total = shopState.cart.reduce((s, i) => s + i.price * i.quantity, 0);
+  assistantSay('Your cart:', `<div class="order-summary-chat">${shopState.cart.map(i => `
+    <div class="order-line"><span>${i.name} ×${i.quantity}</span><span>${formatCurrency(i.price * i.quantity)}</span></div>
+  `).join('')}<div class="order-line total"><span>Subtotal</span><span>${formatCurrency(total)}</span></div></div>`);
+  setQuickActions([
+    { label: 'Checkout', action: 'startCheckout()', primary: true },
+    { label: 'Clear Cart', action: 'clearCart()' },
+  ]);
 }
 
 function clearCart() {
-  state.cart = [];
-  updateCartBadge();
-  updateDebugPanel();
-  addMessage('user', 'Clear cart');
-  assistantSay('Cart cleared! Browse products on the left to add items.');
-  clearQuickActions();
+  shopState.cart = []; updateCartBadge();
+  addMessage('user', 'Clear cart'); assistantSay('Cart cleared!'); updateBrowsingActions();
 }
 
 function updateCartBadge() {
-  const count = state.cart.reduce((sum, i) => sum + i.quantity, 0);
-  document.getElementById('cart-count').textContent = count;
+  document.getElementById('cart-count').textContent = shopState.cart.reduce((s, i) => s + i.quantity, 0);
 }
 
-function getCartTotal() {
-  return state.cart.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
-}
-
-// ============================================================================
-// Checkout Flow
-// ============================================================================
-
+// Checkout
 async function startCheckout() {
-  if (state.cart.length === 0) {
-    assistantSay("Your cart is empty. Add some products first.");
-    return;
-  }
-
+  if (!shopState.cart.length) { assistantSay("Cart is empty."); return; }
   addMessage('user', 'Checkout');
-  state.chatPhase = 'checkout-review';
-
-  await assistantSay("Let's start the checkout process! First, I'll create a checkout session with the UCP API.");
-
-  // Create checkout session
-  const payload = {
-    line_items: state.cart.map((i) => ({
-      item: { id: i.product.id },
-      quantity: i.quantity,
-    })),
-    currency: 'USD',
-    payment: {
-      instruments: [
-        { id: 'inst-mock', handler_id: 'mock-payment-handler', type: 'token', display_name: 'Test Payment' },
-        { id: 'inst-card', handler_id: 'card-handler', type: 'card', display_name: 'Credit Card' },
-      ],
-    },
-  };
-
+  await assistantSay("Creating cart and checkout session via UCP APIs...");
   try {
-    state.checkout = await fetchApi('POST', `${API_BASE}/checkout-sessions`, payload);
-
-    // Show order summary
-    const summaryHtml = renderOrderSummary(state.checkout);
-    await assistantSay(
-      `Checkout session created! Here's your order summary:` + summaryHtml
-    );
-
-    await sleep(500);
-    await assistantSay(
-      "I'll need some information to complete your order. Please fill in your details:",
-      renderBuyerForm()
-    );
-
-    state.chatPhase = 'checkout-info';
+    const cart = await fetchShopApi('POST', `${API_BASE}/shopping/cart`, {
+      currency: 'USD', items: shopState.cart.map(i => ({ item_id: i.id, quantity: i.quantity })),
+    });
+    shopState.checkout = await fetchShopApi('POST', `${API_BASE}/shopping/checkout-sessions`, {
+      cart_id: cart.id, currency: 'USD',
+      payment: { instruments: [{ id: 'inst-mock', handler_id: 'mock-payment-handler', type: 'token', display_name: 'Test Payment' }] },
+    });
+    await assistantSay('Checkout created! Select shipping:', renderFulfillmentOptions(shopState.checkout.fulfillment_options || []));
     clearQuickActions();
-  } catch (error) {
-    await assistantSay(`Oops! Something went wrong: ${error.message}`);
-  }
+  } catch (e) { await assistantSay(`Error: ${e.message}`); }
 }
 
-function renderOrderSummary(checkout) {
-  const items = checkout.line_items
-    .map(
-      (i) => `
-    <div class="order-line">
-      <span>${i.item.name} x${i.quantity}</span>
-      <span>${formatCurrency(i.total_price)}</span>
-    </div>
-  `
-    )
-    .join('');
-
-  return `
-    <div class="order-summary-chat">
-      ${items}
-      <div class="order-line"><span>Subtotal</span><span>${formatCurrency(checkout.totals.subtotal)}</span></div>
-      <div class="order-line"><span>Tax</span><span>${formatCurrency(checkout.totals.tax)}</span></div>
-      <div class="order-line"><span>Shipping</span><span>${checkout.totals.shipping === 0 ? 'FREE' : formatCurrency(checkout.totals.shipping)}</span></div>
-      <div class="order-line total"><span>Total</span><span>${formatCurrency(checkout.totals.total)}</span></div>
-    </div>
-  `;
-}
-
-function renderBuyerForm() {
-  return `
-    <div class="chat-form" id="buyer-form">
-      <div class="chat-form-group">
-        <label>Full Name</label>
-        <input type="text" id="form-name" placeholder="John Doe">
-      </div>
-      <div class="chat-form-group">
-        <label>Email</label>
-        <input type="email" id="form-email" placeholder="john@example.com">
-      </div>
-      <div class="chat-form-group">
-        <label>Phone (optional)</label>
-        <input type="tel" id="form-phone" placeholder="+1-555-123-4567">
-      </div>
-      <button class="chat-form-submit" onclick="submitBuyerInfo()">Continue</button>
-    </div>
-  `;
-}
-
-async function submitBuyerInfo() {
-  const name = document.getElementById('form-name').value;
-  const email = document.getElementById('form-email').value;
-  const phone = document.getElementById('form-phone').value;
-
-  if (!name || !email) {
-    assistantSay("Please fill in your name and email to continue.");
-    return;
-  }
-
-  addMessage('user', `${name}, ${email}`);
-
-  await assistantSay("Great! Now I'll update the checkout session with your information.");
-
-  try {
-    state.checkout = await fetchApi('PUT', `${API_BASE}/checkout-sessions/${state.checkout.id}`, {
-      buyer: { name, email, phone },
-      payment: { selected_instrument_id: state.checkout.payment.instruments[0].id },
-    });
-
-    await assistantSay(
-      `Thanks ${name}! Now please select a payment method:`,
-      renderPaymentOptions()
-    );
-
-    state.chatPhase = 'checkout-payment';
-  } catch (error) {
-    await assistantSay(`Error updating checkout: ${error.message}`);
-  }
-}
-
-function renderPaymentOptions() {
-  const instruments = state.checkout.payment.instruments;
-  const buttons = instruments
-    .map(
-      (i) => `
-    <button class="quick-action-btn" onclick="selectPayment('${i.id}')">
-      ${i.display_name}
+function renderFulfillmentOptions(opts) {
+  return `<div class="fulfillment-options">${opts.map(o => `
+    <button class="fulfillment-option" onclick="selectFulfillment('${o.id}')">
+      <div class="fulfillment-option-header"><span>${o.type === 'shipping' ? '📦' : '🏪'}</span> <strong>${o.name}</strong></div>
+      <div class="fulfillment-option-detail">${o.description || ''}</div>
+      <div class="fulfillment-option-price">${o.price === 0 ? 'FREE' : formatCurrency(o.price)}</div>
     </button>
-  `
-    )
-    .join('');
-
-  return `<div style="margin-top: 0.75rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">${buttons}</div>`;
+  `).join('')}</div>`;
 }
 
-async function selectPayment(instrumentId) {
-  const instrument = state.checkout.payment.instruments.find((i) => i.id === instrumentId);
-  addMessage('user', `Pay with ${instrument.display_name}`);
-
-  await assistantSay("Processing your payment...");
-
-  // Update with selected payment
-  await fetchApi('PUT', `${API_BASE}/checkout-sessions/${state.checkout.id}`, {
-    payment: { selected_instrument_id: instrumentId },
-  });
-
-  // Complete checkout
+async function selectFulfillment(optId) {
+  const opt = (shopState.checkout.fulfillment_options || []).find(o => o.id === optId);
+  addMessage('user', `Ship: ${opt?.name}`);
   try {
-    state.checkout = await fetchApi('POST', `${API_BASE}/checkout-sessions/${state.checkout.id}/complete`, {
-      payment_data: {
-        handler_id: instrument.handler_id,
-        token: 'success_token',
-      },
+    shopState.checkout = await fetchShopApi('PUT', `${API_BASE}/shopping/checkout-sessions/${shopState.checkout.id}`, {
+      fulfillment: { selected_option_id: optId, shipping_address: { street_address: '123 AI Blvd', locality: 'San Francisco', region: 'CA', postal_code: '94105', country_code: 'US' } },
+      buyer: { name: 'Demo User', email: 'demo@example.com' },
+      payment: { selected_instrument_id: 'inst-mock' },
+      consent: { terms_accepted: true, privacy_accepted: true },
     });
+    await assistantSay(`Shipping: <strong>${opt?.name}</strong>. Got a promo code?`, `
+      <div class="discount-input-group" style="margin-top: 0.5rem;">
+        <input type="text" id="discount-code" class="chat-form-input" placeholder="SAVE10, FREESHIP, FLAT20">
+        <button class="quick-action-btn primary" onclick="applyDiscount()">Apply</button>
+      </div>
+    `);
+    setQuickActions([{ label: 'Skip → Pay Now', action: 'completeCheckout()', primary: true }]);
+  } catch (e) { await assistantSay(`Error: ${e.message}`); }
+}
 
-    // Show confirmation
-    const confirmationHtml = `
+async function applyDiscount() {
+  const code = document.getElementById('discount-code')?.value?.trim();
+  if (!code) return;
+  addMessage('user', `Promo: ${code}`);
+  try {
+    shopState.checkout = await fetchShopApi('POST', `${API_BASE}/shopping/checkout-sessions/${shopState.checkout.id}/discount`, { code });
+    const d = shopState.checkout.discount;
+    await assistantSay(`✅ <strong>${d.description}</strong> applied! Discount: -${formatCurrency(d.amount)}`);
+    setQuickActions([{ label: 'Pay Now', action: 'completeCheckout()', primary: true }]);
+  } catch (e) { await assistantSay(`❌ ${e.message}`); }
+}
+
+async function completeCheckout() {
+  addMessage('user', 'Complete order');
+  await assistantSay("Processing payment...");
+  try {
+    shopState.checkout = await fetchShopApi('POST', `${API_BASE}/shopping/checkout-sessions/${shopState.checkout.id}/complete`, {
+      payment_data: { handler_id: 'mock-payment-handler', token: 'success_token' },
+    });
+    shopState.orderId = shopState.checkout.order?.id;
+    await assistantSay(`
       <div class="confirmation-bubble">
         <div class="confirmation-icon">✓</div>
         <h3>Order Confirmed!</h3>
-        <p>Thank you for your purchase.</p>
-        <div class="order-id-display">${state.checkout.order.id}</div>
+        <div class="order-id-display">${shopState.checkout.order.id}</div>
+        <p style="margin-top:0.5rem">Total: <strong>${formatCurrency(shopState.checkout.totals.total)}</strong></p>
       </div>
-    `;
-
-    await assistantSay(confirmationHtml);
-    await sleep(500);
-    await assistantSay(
-      `Your order <strong>${state.checkout.order.id}</strong> has been placed! ` +
-      `Total charged: <strong>${formatCurrency(state.checkout.totals.total)}</strong>`
-    );
-
-    state.chatPhase = 'completed';
-    state.cart = [];
-    updateCartBadge();
-
-    setQuickActions([{ label: 'Start New Order', action: 'resetChat()', primary: true }]);
-  } catch (error) {
-    await assistantSay(`Payment failed: ${error.message}`);
-  }
+    `);
+    shopState.cart = []; updateCartBadge();
+    setQuickActions([
+      { label: '📦 View Order', action: 'viewOrder()', primary: true },
+      { label: '🔁 New Order', action: 'resetShop()' },
+    ]);
+  } catch (e) { await assistantSay(`Payment failed: ${e.message}`); }
 }
 
-function resetChat() {
-  state.checkout = null;
-  state.chatPhase = 'welcome';
-  document.getElementById('chat-messages').innerHTML = '';
-  clearQuickActions();
-  initChat();
+async function viewOrder() {
+  if (!shopState.orderId) return;
+  addMessage('user', `View order ${shopState.orderId}`);
+  try {
+    const order = await fetchShopApi('GET', `${API_BASE}/shopping/orders/${shopState.orderId}`);
+    const items = order.line_items.map(i => `<div class="order-line"><span>${i.item.name} ×${i.quantity}</span><span>${formatCurrency(i.total_price)}</span></div>`).join('');
+    const tracking = order.fulfillment?.tracking_number ? `<div class="tracking-number">Tracking: ${order.fulfillment.tracking_number}</div>` : '';
+    await assistantSay(`Order ${order.id}:`, `
+      <div class="order-summary-chat">
+        <div class="order-status-badge ${order.status}">${order.status.toUpperCase()}</div>
+        ${items}
+        <div class="order-line total"><span>Total</span><span>${formatCurrency(order.totals.total)}</span></div>
+        ${tracking}
+      </div>
+    `);
+    setQuickActions([{ label: '🔁 New Order', action: 'resetShop()', primary: true }]);
+  } catch (e) { await assistantSay(`Error: ${e.message}`); }
 }
 
-// ============================================================================
 // Chat Input
-// ============================================================================
-
-function handleChatKeypress(event) {
-  if (event.key === 'Enter') {
-    sendMessage();
-  }
-}
+function handleChatKeypress(e) { if (e.key === 'Enter') sendMessage(); }
 
 function sendMessage() {
   const input = document.getElementById('chat-input');
-  const text = input.value.trim();
-  if (!text) return;
-
+  const text = input.value.trim(); if (!text) return;
   input.value = '';
   addMessage('user', escapeHtml(text));
   processUserMessage(text);
 }
 
 async function processUserMessage(text) {
-  const lower = text.toLowerCase();
-
-  if (lower.includes('checkout') || lower.includes('buy') || lower.includes('purchase')) {
-    startCheckout();
-  } else if (lower.includes('clear') || lower.includes('empty')) {
-    clearCart();
-  } else if (lower.includes('help')) {
+  const l = text.toLowerCase();
+  if (l.includes('checkout') || l.includes('buy')) startCheckout();
+  else if (l.includes('cart')) viewCart();
+  else if (l.includes('clear')) clearCart();
+  else if (l.includes('order') && shopState.orderId) viewOrder();
+  else if (l.includes('help')) {
     await assistantSay(
-      "I can help you shop! Here's what you can do:<br>" +
-      "• Click products on the left to add them to your cart<br>" +
-      "• Say <strong>checkout</strong> to start the checkout process<br>" +
-      "• Say <strong>clear cart</strong> to empty your cart<br>" +
-      "• Toggle <strong>Debug Mode</strong> to see UCP API calls"
+      "Commands:<br>• <strong>search [query]</strong> — Search catalog<br>• Click products to add to cart<br>" +
+      "• <strong>cart</strong> / <strong>checkout</strong> / <strong>order</strong><br>" +
+      "• Promo codes: <code>SAVE10</code> <code>FREESHIP</code> <code>FLAT20</code>"
     );
-  } else if (lower.includes('cart')) {
-    if (state.cart.length === 0) {
-      await assistantSay("Your cart is empty. Click on products to add them.");
-    } else {
-      const items = state.cart
-        .map((i) => `${i.product.name} x${i.quantity}`)
-        .join('<br>');
-      await assistantSay(`Your cart:<br>${items}<br><br>Total: ${formatCurrency(getCartTotal())}`);
-    }
-  } else {
-    await assistantSay(
-      "I'm not sure what you mean. Try saying <strong>checkout</strong>, <strong>help</strong>, or click a product to add it to your cart!"
-    );
-  }
+  } else { searchCatalog(text); }
 }
 
-// ============================================================================
-// Debug Mode
-// ============================================================================
+function resetShop() {
+  shopState.checkout = null; shopState.orderId = null; shopState.cart = [];
+  updateCartBadge();
+  document.getElementById('chat-messages').innerHTML = '';
+  clearQuickActions(); initShopChat();
+}
 
+// Debug
 function toggleDebugMode() {
-  state.debugMode = document.getElementById('debug-mode').checked;
-  const panel = document.getElementById('debug-panel');
-  panel.style.display = state.debugMode ? 'flex' : 'none';
+  shopState.debugMode = document.getElementById('debug-mode').checked;
+  document.getElementById('debug-panel').style.display = shopState.debugMode ? 'flex' : 'none';
   updateDebugPanel();
 }
 
 function switchDebugTab(tab) {
-  document.querySelectorAll('.debug-tab').forEach((t) => t.classList.remove('active'));
-  document.querySelectorAll('.debug-tab-content').forEach((c) => c.classList.remove('active'));
+  document.querySelectorAll('.debug-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.debug-tab-content').forEach(c => c.classList.remove('active'));
   document.querySelector(`.debug-tab[data-tab="${tab}"]`).classList.add('active');
   document.getElementById(`debug-${tab}`).classList.add('active');
 }
 
 function updateDebugPanel() {
-  // State
-  document.getElementById('state-json').textContent = JSON.stringify(
-    {
-      chatPhase: state.chatPhase,
-      cartItems: state.cart.length,
-      checkoutId: state.checkout?.id || null,
-      checkoutStatus: state.checkout?.status || null,
-    },
-    null,
-    2
-  );
+  const tl = document.getElementById('debug-timeline');
+  if (tl) tl.innerHTML = shopState.timeline.slice(0, 30).map(e => `
+    <div class="timeline-entry"><span class="timeline-time">${e.time}</span><span class="timeline-event">${e.event}</span></div>
+  `).join('');
 
-  // Timeline
-  const timelineEl = document.getElementById('debug-timeline');
-  timelineEl.innerHTML = state.timeline
-    .slice(0, 20)
-    .map(
-      (e) => `
-    <div class="timeline-entry">
-      <span class="timeline-time">${e.time}</span>
-      <span class="timeline-event">${e.event}</span>
-    </div>
-  `
-    )
-    .join('');
-
-  // Requests
-  const requestsEl = document.getElementById('requests-log');
-  requestsEl.innerHTML = state.requests
-    .slice(0, 10)
-    .map(
-      (r) => `
+  const rl = document.getElementById('requests-log');
+  if (rl) rl.innerHTML = shopState.requests.slice(0, 15).map(r => `
     <div class="request-entry">
       <div class="request-entry-header" onclick="this.parentElement.classList.toggle('expanded')">
         <span class="api-method ${r.method.toLowerCase()}">${r.method}</span>
         <span>${r.endpoint}</span>
         <span class="status-badge ${r.status < 400 ? 'success' : 'error'}">${r.status}</span>
-        <span style="margin-left: auto; color: var(--text-muted)">${r.duration}ms</span>
+        <span style="margin-left:auto;color:var(--text-muted)">${r.duration}ms</span>
       </div>
       <div class="request-entry-body">
-        <div><strong>Request:</strong></div>
-        <pre style="color: #a5f3fc; margin: 0.5rem 0">${r.body ? JSON.stringify(r.body, null, 2) : 'null'}</pre>
-        <div><strong>Response:</strong></div>
-        <pre style="color: #86efac; margin: 0.5rem 0">${JSON.stringify(r.response, null, 2)}</pre>
+        <div><strong>Request:</strong></div><pre style="color:#a5f3fc;margin:0.5rem 0">${r.body ? JSON.stringify(r.body, null, 2) : 'null'}</pre>
+        <div><strong>Response:</strong></div><pre style="color:#86efac;margin:0.5rem 0">${JSON.stringify(r.response, null, 2)}</pre>
       </div>
     </div>
-  `
-    )
-    .join('');
+  `).join('');
 }
 
 function addTimelineEntry(event, type = 'info') {
-  const now = new Date();
-  const time = now.toTimeString().split(' ')[0];
-  state.timeline.unshift({ time, event, type });
-  if (state.debugMode) {
-    updateDebugPanel();
-  }
+  shopState.timeline.unshift({ time: new Date().toTimeString().split(' ')[0], event, type });
+  if (shopState.debugMode) updateDebugPanel();
 }
 
-// ============================================================================
-// Discovery Modal
-// ============================================================================
-
-async function loadDiscovery() {
-  const response = await fetch(DISCOVERY_URL);
-  state.discoveryProfile = await response.json();
+// Init
+async function initShopChat() {
+  await assistantSay("Welcome to the <strong>UCP Shop Demo</strong>!<br><br>This shows a chat-style shopping experience backed by UCP APIs. Toggle <strong>Debug</strong> to see raw API calls.", null, 600);
+  await sleep(300);
+  await assistantSay("Searching the catalog...");
+  try {
+    const r = await fetchShopApi('POST', `${API_BASE}/catalog/search`, { page_size: 20 });
+    shopState.products = r.items;
+    await assistantSay(`<strong>${r.total_count}</strong> products available. Click to add:`, renderProductsInChat(r.items), 300);
+  } catch (e) { await assistantSay(`Failed to load: ${e.message}`); }
+  updateBrowsingActions();
 }
 
-function showDiscovery() {
-  document.getElementById('discovery-json').textContent = JSON.stringify(
-    state.discoveryProfile,
-    null,
-    2
-  );
-  document.getElementById('discovery-modal').classList.add('active');
-}
-
-function hideDiscovery() {
-  document.getElementById('discovery-modal').classList.remove('active');
-}
-
-document.getElementById('discovery-modal').addEventListener('click', (e) => {
-  if (e.target.id === 'discovery-modal') hideDiscovery();
-});
-
-// ============================================================================
-// Initialize
-// ============================================================================
-
-async function initChat() {
-  await assistantSay(
-    "Welcome to the <strong>UCP Demo Shop</strong>.<br><br>" +
-    "I'll help you checkout using the <strong>Universal Commerce Protocol</strong>. " +
-    "Click on a product below to add it to your cart, then say <strong>checkout</strong> when you're ready.",
-    null,
-    800
-  );
-
-  await sleep(400);
-
-  // Show products in chat
-  await assistantSay(
-    "Here are our available products:",
-    renderProductsInChat(),
-    300
-  );
-
-  await sleep(400);
-  await assistantSay(
-    "<em>Tip: Toggle <strong>Debug Mode</strong> in the header to see the UCP API calls behind the scenes.</em>",
-    null,
-    300
-  );
-}
-
-async function init() {
-  if (initialized) return;
-  initialized = true;
-
+async function initShopDemo() {
   document.getElementById('loading').style.display = 'flex';
-
-  await Promise.all([loadProducts(), loadDiscovery()]);
-
+  await sleep(300);
   document.getElementById('loading').style.display = 'none';
-
-  initChat();
+  initShopChat();
 }
 
-// Don't auto-init - wait for user to click "Try Demo"
-
 // ============================================================================
-// Debug Panel Resize
+// Helpers
 // ============================================================================
 
-function initDebugResize() {
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function escapeHtml(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function formatCurrency(cents) { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100); }
+
+// Debug panel resize
+document.addEventListener('DOMContentLoaded', () => {
   const handle = document.getElementById('debug-resize-handle');
   const panel = document.getElementById('debug-panel');
-
   if (!handle || !panel) return;
-
-  let isResizing = false;
-  let startY = 0;
-  let startHeight = 0;
-
-  handle.addEventListener('mousedown', (e) => {
-    isResizing = true;
-    startY = e.clientY;
-    startHeight = panel.offsetHeight;
-    document.body.style.cursor = 'ns-resize';
-    document.body.style.userSelect = 'none';
-    e.preventDefault();
-  });
-
-  document.addEventListener('mousemove', (e) => {
-    if (!isResizing) return;
-    const delta = startY - e.clientY;
-    const newHeight = Math.min(Math.max(startHeight + delta, 100), window.innerHeight * 0.6);
-    panel.style.height = newHeight + 'px';
-  });
-
-  document.addEventListener('mouseup', () => {
-    if (isResizing) {
-      isResizing = false;
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    }
-  });
-}
-
-// Initialize resize when DOM is ready
-document.addEventListener('DOMContentLoaded', initDebugResize);
+  let resizing = false, startY = 0, startH = 0;
+  handle.addEventListener('mousedown', e => { resizing = true; startY = e.clientY; startH = panel.offsetHeight; document.body.style.cursor = 'ns-resize'; e.preventDefault(); });
+  document.addEventListener('mousemove', e => { if (!resizing) return; panel.style.height = Math.min(Math.max(startH + (startY - e.clientY), 100), window.innerHeight * 0.6) + 'px'; });
+  document.addEventListener('mouseup', () => { if (resizing) { resizing = false; document.body.style.cursor = ''; } });
+});

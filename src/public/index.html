@@ -4,8 +4,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>UCP - Universal Commerce Protocol</title>
+  <title>UCP Demo — Universal Commerce Protocol</title>
+  <meta name="description"
+    content="Your AI agent wants to buy something. UCP gives it a way to find merchants, search products, and check out. Through clean APIs, not screen scraping.">
   <link rel="stylesheet" href="/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
 
 <body>
@@ -14,10 +18,10 @@
        ======================================================================== -->
   <div id="landing" class="landing">
     <nav class="landing-nav">
-      <div class="landing-logo">&#9670; UCP Demo</div>
+      <div class="landing-logo">◆ UCP Demo</div>
       <div class="landing-nav-links">
-        <a href="https://ucp.dev" target="_blank">Learn about UCP</a>
-        <a href="/.well-known/ucp" target="_blank">Discovery</a>
+        <a href="https://ucp.dev/latest/specification/overview/" target="_blank">Spec</a>
+        <a href="/.well-known/ucp" target="_blank" class="nav-code">/.well-known/ucp</a>
         <a href="https://github.com/hemanth/ucp-demo" target="_blank">GitHub</a>
       </div>
     </nav>
@@ -25,175 +29,306 @@
     <div class="landing-hero">
       <div class="landing-badge">
         <span class="landing-badge-dot"></span>
-        UCP Demo
+        v2026-04-08
       </div>
-      <h1 class="landing-title">UCP Demo</h1>
+      <h1 class="landing-title">Universal Commerce<br>Protocol</h1>
       <p class="landing-subtitle">
-        This interactive demo shows how the Universal Commerce Protocol works.
-        Browse products, checkout via chat, and toggle Debug Mode to see the actual UCP API calls in real-time.
+        Your AI agent wants to buy something. UCP gives it a way to find merchants,
+        search products, and check out. Through clean APIs, not screen scraping
+        or browser puppeteering. Just a protocol.
       </p>
       <div class="landing-cta">
-        <button class="btn btn-primary" onclick="showDemo()">Try Demo &rarr;</button>
-        <a href="https://ucp.dev" target="_blank" class="btn btn-secondary">Learn More at UCP.dev</a>
+        <button class="btn btn-primary" onclick="showDemo('agent')">Agent Flow →</button>
+        <button class="btn btn-secondary" onclick="showDemo('shop')">Shop Demo →</button>
+      </div>
+      <p class="landing-cta-hint">
+        <strong>Agent Flow</strong> shows raw API request/response for each protocol step.<br>
+        <strong>Shop Demo</strong> shows a chat-style shopping experience powered by UCP.
+      </p>
+    </div>
+
+    <!-- What UCP Enables -->
+    <div class="landing-section">
+      <div class="landing-section-inner">
+        <div class="landing-section-title">What UCP Enables</div>
+        <div class="value-grid">
+          <div class="value-card">
+            <div class="value-icon">🤖</div>
+            <h3>Agent Commerce</h3>
+            <p>AI agents discover merchant capabilities and complete purchases programmatically — no browser needed.</p>
+          </div>
+          <div class="value-card">
+            <div class="value-icon">🔌</div>
+            <h3>Universal Integration</h3>
+            <p>One protocol, any merchant. Like how email works across providers, UCP works across commerce platforms.</p>
+          </div>
+          <div class="value-card">
+            <div class="value-icon">🔍</div>
+            <h3>Capability Discovery</h3>
+            <p>Agents discover what a merchant supports via a single <code>/.well-known/ucp</code> endpoint.</p>
+          </div>
+        </div>
       </div>
     </div>
 
+    <!-- Protocol Flow -->
+    <div class="landing-section">
+      <div class="landing-section-inner">
+        <div class="landing-section-title">The Agent Checkout Flow</div>
+        <p class="landing-section-desc">When an AI agent wants to make a purchase, it follows this protocol:</p>
+        <div class="flow-vertical">
+          <div class="flow-vstep">
+            <div class="flow-vstep-number">1</div>
+            <div class="flow-vstep-content">
+              <div class="flow-vstep-label">Discovery</div>
+              <div class="flow-vstep-code">GET /.well-known/ucp</div>
+              <div class="flow-vstep-desc">Agent fetches the merchant's discovery profile — capabilities, payment handlers, endpoints.</div>
+            </div>
+          </div>
+          <div class="flow-vline"></div>
+          <div class="flow-vstep">
+            <div class="flow-vstep-number">2</div>
+            <div class="flow-vstep-content">
+              <div class="flow-vstep-label">Catalog Search</div>
+              <div class="flow-vstep-code">POST /api/catalog/search</div>
+              <div class="flow-vstep-desc">Agent searches products by text, category, or price range.</div>
+            </div>
+          </div>
+          <div class="flow-vline"></div>
+          <div class="flow-vstep">
+            <div class="flow-vstep-number">3</div>
+            <div class="flow-vstep-content">
+              <div class="flow-vstep-label">Cart → Checkout</div>
+              <div class="flow-vstep-code">POST /cart → POST /checkout-sessions</div>
+              <div class="flow-vstep-desc">Create a cart, then convert to checkout. Merchant returns pricing, fulfillment options, and payment instruments.</div>
+            </div>
+          </div>
+          <div class="flow-vline"></div>
+          <div class="flow-vstep">
+            <div class="flow-vstep-number">4</div>
+            <div class="flow-vstep-content">
+              <div class="flow-vstep-label">Configure & Complete</div>
+              <div class="flow-vstep-code">PUT /checkout-sessions/:id → POST .../complete</div>
+              <div class="flow-vstep-desc">Select fulfillment, apply discounts, provide buyer info, submit payment.</div>
+            </div>
+          </div>
+          <div class="flow-vline"></div>
+          <div class="flow-vstep">
+            <div class="flow-vstep-number">5</div>
+            <div class="flow-vstep-content">
+              <div class="flow-vstep-label">Order</div>
+              <div class="flow-vstep-code">GET /orders/:id</div>
+              <div class="flow-vstep-desc">Retrieve order confirmation with tracking number and full details.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Capabilities -->
     <div class="landing-features">
       <div class="feature-card">
-        <div class="feature-icon">✓</div>
-        <h3 class="feature-title">Discovery</h3>
-        <p class="feature-desc">
-          <strong>Implemented:</strong> <code>/.well-known/ucp</code> endpoint returns merchant capabilities, payment
-          handlers, and API endpoints.
-        </p>
+        <div class="feature-icon">🔍</div>
+        <h3 class="feature-title">Catalog</h3>
+        <p class="feature-desc"><code>dev.ucp.catalog</code><br>Search and lookup products.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">✓</div>
-        <h3 class="feature-title">Checkout Sessions</h3>
-        <p class="feature-desc">
-          <strong>Implemented:</strong> Full checkout flow with create, update, and complete operations. Real API calls
-          visible in debug mode.
-        </p>
+        <div class="feature-icon">🛒</div>
+        <h3 class="feature-title">Cart</h3>
+        <p class="feature-desc"><code>dev.ucp.cart</code><br>Create, update, delete carts.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">⚡</div>
-        <h3 class="feature-title">What's Mocked</h3>
-        <p class="feature-desc">
-          Payment processing uses test tokens. No real charges. In-memory storage resets on each session.
-        </p>
+        <div class="feature-icon">💳</div>
+        <h3 class="feature-title">Checkout</h3>
+        <p class="feature-desc"><code>dev.ucp.shopping.checkout</code><br>Create → Update → Complete lifecycle.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">→</div>
-        <h3 class="feature-title">What's Next</h3>
-        <p class="feature-desc">
-          Real payment gateways, persistent orders, shipping integration. Visit
-          <a href="https://ucp.dev" target="_blank" style="text-decoration: underline;">ucp.dev</a> for the full spec.
-        </p>
+        <div class="feature-icon">🚚</div>
+        <h3 class="feature-title">Fulfillment</h3>
+        <p class="feature-desc"><code>checkout.fulfillment</code><br>Shipping options + store pickup.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🏷️</div>
+        <h3 class="feature-title">Discounts</h3>
+        <p class="feature-desc"><code>checkout.discount</code><br><code>SAVE10</code> · <code>FREESHIP</code> · <code>FLAT20</code></p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📦</div>
+        <h3 class="feature-title">Orders</h3>
+        <p class="feature-desc"><code>dev.ucp.shopping.order</code><br>Retrieve and list orders.</p>
       </div>
     </div>
 
     <footer class="landing-footer">
-      <span>&copy; 2025 UCP Demo</span>
-      <span>Built with &lt;3 by <a href="https://h3manth.com" target="_blank">Hemanth HM</a></span>
-      <span><a href="https://ucp.dev" target="_blank">Universal Commerce Protocol</a></span>
+      <span>&copy; 2025 UCP Demo · <a href="https://h3manth.com" target="_blank">Hemanth HM</a></span>
+      <span><a href="https://ucp.dev" target="_blank">ucp.dev</a></span>
     </footer>
   </div>
 
   <!-- ========================================================================
-       Demo App
+       Agent Flow — API Explorer
        ======================================================================== -->
-  <div id="demo-app" class="demo-app">
-    <!-- Header -->
+  <div id="agent-app" class="demo-app">
     <header class="header">
       <div class="header-content">
-        <h1 class="logo" onclick="showLanding()">
-          <span class="logo-icon">&#9670;</span> UCP Demo Shop
-        </h1>
+        <h1 class="logo" onclick="showLanding()">◆ UCP Agent Flow</h1>
         <div class="header-right">
-          <label class="debug-toggle">
-            <input type="checkbox" id="debug-mode" onchange="toggleDebugMode()">
-            <span class="toggle-slider"></span>
-            <span class="toggle-label">Debug Mode</span>
-          </label>
-          <button class="discovery-btn" onclick="showDiscovery()">
-            View Discovery
-          </button>
-          <button class="back-btn" onclick="showLanding()">
-            Back
-          </button>
+          <button class="mode-switch" onclick="switchMode('shop')">Switch to Shop Demo</button>
+          <button class="back-btn" onclick="showLanding()">← Back</button>
         </div>
       </div>
     </header>
 
-    <!-- Main Chat Area -->
+    <main class="explorer-main">
+      <!-- Left: Steps -->
+      <nav class="steps-nav" id="steps-nav">
+        <div class="steps-title">Protocol Steps</div>
+        <button class="step-item active" data-step="0" onclick="goToStep(0)">
+          <span class="step-num">1</span><span class="step-label">Discovery</span>
+          <span class="step-check" id="check-0"></span>
+        </button>
+        <button class="step-item" data-step="1" onclick="goToStep(1)">
+          <span class="step-num">2</span><span class="step-label">Catalog Search</span>
+          <span class="step-check" id="check-1"></span>
+        </button>
+        <button class="step-item" data-step="2" onclick="goToStep(2)">
+          <span class="step-num">3</span><span class="step-label">Create Cart</span>
+          <span class="step-check" id="check-2"></span>
+        </button>
+        <button class="step-item" data-step="3" onclick="goToStep(3)">
+          <span class="step-num">4</span><span class="step-label">Checkout Session</span>
+          <span class="step-check" id="check-3"></span>
+        </button>
+        <button class="step-item" data-step="4" onclick="goToStep(4)">
+          <span class="step-num">5</span><span class="step-label">Fulfillment + Buyer</span>
+          <span class="step-check" id="check-4"></span>
+        </button>
+        <button class="step-item" data-step="5" onclick="goToStep(5)">
+          <span class="step-num">6</span><span class="step-label">Apply Discount</span>
+          <span class="step-check" id="check-5"></span>
+        </button>
+        <button class="step-item" data-step="6" onclick="goToStep(6)">
+          <span class="step-num">7</span><span class="step-label">Complete Order</span>
+          <span class="step-check" id="check-6"></span>
+        </button>
+        <button class="step-item" data-step="7" onclick="goToStep(7)">
+          <span class="step-num">8</span><span class="step-label">Retrieve Order</span>
+          <span class="step-check" id="check-7"></span>
+        </button>
+        <div class="steps-actions">
+          <button class="btn-run-all" onclick="runAllSteps()">▶ Run All Steps</button>
+          <button class="btn-reset" onclick="resetAll()">↺ Reset</button>
+        </div>
+      </nav>
+
+      <!-- Right: Request/Response -->
+      <section class="api-panel" id="api-panel">
+        <div class="api-panel-header">
+          <div>
+            <h2 class="api-step-title" id="api-step-title">Step 1: Discovery</h2>
+            <p class="api-step-desc" id="api-step-desc">Fetch the merchant's UCP profile to discover capabilities.</p>
+          </div>
+          <button class="btn-execute" id="execute-btn" onclick="executeCurrentStep()">Execute →</button>
+        </div>
+        <div class="api-panels">
+          <div class="api-req-res">
+            <div class="api-section-header">
+              <span class="api-section-label">Request</span>
+              <span class="api-method-badge" id="req-method">GET</span>
+            </div>
+            <div class="api-url" id="req-url">/.well-known/ucp</div>
+            <div class="api-body-section" id="req-body-section" style="display: none;">
+              <div class="api-section-sublabel">Body</div>
+              <pre class="api-code" id="req-body"></pre>
+            </div>
+          </div>
+          <div class="api-req-res">
+            <div class="api-section-header">
+              <span class="api-section-label">Response</span>
+              <span class="api-status-badge" id="res-status">—</span>
+              <span class="api-duration" id="res-duration"></span>
+            </div>
+            <pre class="api-code response" id="res-body"><span class="placeholder">Click "Execute →" to run this step</span></pre>
+          </div>
+        </div>
+        <div class="api-explanation" id="api-explanation">
+          <div class="api-explanation-title">What happens here</div>
+          <div id="api-explanation-body">
+            The agent sends a GET request to <code>/.well-known/ucp</code>. The merchant responds with capabilities, payment handlers, and API endpoints.
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ========================================================================
+       Shop Demo — Chat Experience
+       ======================================================================== -->
+  <div id="shop-app" class="demo-app">
+    <header class="header">
+      <div class="header-content">
+        <h1 class="logo" onclick="showLanding()">◆ UCP Shop Demo</h1>
+        <div class="header-right">
+          <label class="debug-toggle">
+            <input type="checkbox" id="debug-mode" onchange="toggleDebugMode()">
+            <span class="toggle-slider"></span>
+            <span class="toggle-label">Debug</span>
+          </label>
+          <button class="mode-switch" onclick="switchMode('agent')">Switch to Agent Flow</button>
+          <button class="back-btn" onclick="showLanding()">← Back</button>
+        </div>
+      </div>
+    </header>
+
     <main class="chat-main">
-      <!-- Chat Panel -->
       <section class="chat-panel">
         <div class="chat-header">
           <div class="assistant-info">
             <span class="assistant-avatar">UCP</span>
             <div>
-              <h3>UCP Assistant</h3>
+              <h3>UCP Shop</h3>
               <span class="status-online">Online</span>
             </div>
           </div>
           <div class="cart-indicator" id="cart-indicator">
-            <span id="cart-count">0</span> items in cart
+            <span id="cart-count">0</span> items
           </div>
         </div>
-
-        <!-- Chat Messages -->
-        <div id="chat-messages" class="chat-messages">
-          <!-- Messages loaded dynamically -->
-        </div>
-
-        <!-- Quick Actions -->
-        <div id="quick-actions" class="quick-actions">
-          <!-- Quick action buttons loaded dynamically -->
-        </div>
-
-        <!-- Chat Input -->
+        <div id="chat-messages" class="chat-messages"></div>
+        <div id="quick-actions" class="quick-actions"></div>
         <div class="chat-input-container">
-          <input type="text" id="chat-input" class="chat-input" placeholder="Type a message..."
-            onkeypress="handleChatKeypress(event)">
-          <button class="chat-send-btn" onclick="sendMessage()">
-            <span>&#10148;</span>
-          </button>
+          <input type="text" id="chat-input" class="chat-input" placeholder="Type a message or command..." onkeypress="handleChatKeypress(event)">
+          <button class="chat-send-btn" onclick="sendMessage()"><span>&#10148;</span></button>
         </div>
       </section>
     </main>
 
-    <!-- Debug Panel (resizable) -->
+    <!-- Debug Panel -->
     <aside id="debug-panel" class="debug-panel" style="display: none;">
       <div class="debug-resize-handle" id="debug-resize-handle"></div>
       <div class="debug-header">
         <h3>Debug Console</h3>
         <div class="debug-tabs">
           <button class="debug-tab active" data-tab="timeline" onclick="switchDebugTab('timeline')">Timeline</button>
-          <button class="debug-tab" data-tab="state" onclick="switchDebugTab('state')">State</button>
           <button class="debug-tab" data-tab="requests" onclick="switchDebugTab('requests')">Requests</button>
         </div>
       </div>
       <div class="debug-content">
-        <div id="debug-timeline" class="debug-tab-content active">
-          <!-- Timeline entries -->
-        </div>
-        <div id="debug-state" class="debug-tab-content">
-          <pre id="state-json"></pre>
-        </div>
+        <div id="debug-timeline" class="debug-tab-content active"></div>
         <div id="debug-requests" class="debug-tab-content">
           <div id="requests-log"></div>
         </div>
       </div>
     </aside>
-
-    <!-- Discovery Modal -->
-    <div id="discovery-modal" class="modal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3>UCP Discovery Profile</h3>
-          <button class="modal-close" onclick="hideDiscovery()">&times;</button>
-        </div>
-        <div class="modal-body">
-          <p class="discovery-url">
-            <strong>Endpoint:</strong> <code>GET /.well-known/ucp</code>
-          </p>
-          <p class="discovery-desc">
-            This is how platforms discover what capabilities this merchant supports.
-          </p>
-          <pre id="discovery-json"></pre>
-        </div>
-      </div>
-    </div>
   </div>
 
-  <!-- Loading Overlay -->
+  <!-- Loading -->
   <div id="loading" class="loading-overlay" style="display: none;">
     <div class="spinner"></div>
     <p id="loading-message">Loading...</p>
   </div>
 
-  <script src="/app.js?v=4"></script>
+  <script src="/app.js?v=7"></script>
 </body>
 
 </html>
