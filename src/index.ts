@@ -1,5 +1,6 @@
 /**
  * Firebase Function Entry Point
+ * Aligned to UCP spec v2026-04-08
  *
  * Exports the Hono app as a Firebase Function for deployment.
  */
@@ -7,8 +8,12 @@
 import { onRequest } from "firebase-functions/v2/https";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { UCP_VERSION } from "./types.js";
 import { discoveryRouter } from "./discovery.js";
+import { catalogRouter } from "./catalog.js";
+import { cartRouter } from "./cart.js";
 import { checkoutRouter } from "./checkout.js";
+import { orderRouter } from "./order.js";
 
 const app = new Hono();
 
@@ -18,11 +23,20 @@ app.use("*", cors());
 // UCP Discovery endpoint
 app.route("/.well-known/ucp", discoveryRouter);
 
-// Shopping API
+// Catalog API
+app.route("/api/catalog", catalogRouter);
+
+// Shopping API - Cart
+app.route("/api/shopping/cart", cartRouter);
+
+// Shopping API - Checkout
 app.route("/api/shopping", checkoutRouter);
 
+// Shopping API - Orders
+app.route("/api/shopping", orderRouter);
+
 // Health check
-app.get("/health", (c) => c.json({ status: "ok", protocol: "UCP", version: "2026-01-11" }));
+app.get("/health", (c) => c.json({ status: "ok", protocol: "UCP", version: UCP_VERSION }));
 
 // Export as Firebase Function using any type to bypass strict typing
 export const api = onRequest(async (req, res) => {

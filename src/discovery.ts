@@ -1,21 +1,22 @@
 /**
  * UCP Discovery - Implements the /.well-known/ucp endpoint
+ * Aligned to UCP spec v2026-04-08
  *
  * The discovery profile allows platforms (AI agents, apps) to:
  * 1. Discover what capabilities this merchant supports
  * 2. Find the API endpoints for each service
  * 3. Understand available payment handlers
+ * 4. Access signing keys for message verification
  *
  * Key concepts:
- * - Capabilities: Core functions like checkout, order management
- * - Extensions: Optional add-ons like discounts, fulfillment
+ * - Capabilities: Core functions like checkout, catalog, cart, order management
+ * - Extensions: Optional add-ons like discounts, fulfillment, buyer consent
  * - Payment Handlers: Supported payment methods
  */
 
 import { Hono } from "hono";
+import { UCP_VERSION } from "./types.js";
 import type { UCPDiscoveryProfile } from "./types.js";
-
-const UCP_VERSION = "2026-01-11";
 
 export const discoveryRouter = new Hono();
 
@@ -33,47 +34,104 @@ discoveryRouter.get("/", (c) => {
     ucp: {
       version: UCP_VERSION,
       services: {
-        // The shopping service handles all checkout-related operations
+        // ============================================================
+        // Catalog Service
+        // ============================================================
+        // Product discovery — search and lookup before purchasing
+        "dev.ucp.catalog": {
+          version: UCP_VERSION,
+          rest: {
+            endpoint: `${baseUrl}/api/catalog`,
+          },
+          capabilities: [
+            {
+              name: "dev.ucp.catalog",
+              version: UCP_VERSION,
+              spec: "https://ucp.dev/latest/specification/catalog/",
+            },
+            {
+              name: "dev.ucp.catalog.search",
+              version: UCP_VERSION,
+              spec: "https://ucp.dev/latest/specification/catalog/search/",
+            },
+            {
+              name: "dev.ucp.catalog.lookup",
+              version: UCP_VERSION,
+              spec: "https://ucp.dev/latest/specification/catalog/lookup/",
+            },
+          ],
+        },
+
+        // ============================================================
+        // Shopping Service
+        // ============================================================
+        // Handles cart, checkout, and order operations
         "dev.ucp.shopping": {
           version: UCP_VERSION,
           rest: {
-            // Platforms use this endpoint for REST API calls
             endpoint: `${baseUrl}/api/shopping`,
           },
           capabilities: [
-            // ============================================================
-            // Core Capability: Checkout
-            // ============================================================
-            // This is the fundamental capability for any e-commerce merchant.
-            // It handles cart management, pricing, and order placement.
+            // --------------------------------------------------------
+            // Core: Cart
+            // --------------------------------------------------------
+            {
+              name: "dev.ucp.cart",
+              version: UCP_VERSION,
+              spec: "https://ucp.dev/latest/specification/cart/",
+            },
+
+            // --------------------------------------------------------
+            // Core: Checkout
+            // --------------------------------------------------------
             {
               name: "dev.ucp.shopping.checkout",
               version: UCP_VERSION,
-              spec: "https://ucp.dev/specs/checkout",
+              spec: "https://ucp.dev/latest/specification/checkout/",
               schema: "https://ucp.dev/schemas/shopping/checkout_resp.json",
             },
 
-            // ============================================================
-            // Core Capability: Order
-            // ============================================================
-            // Post-purchase order management - tracking, updates, etc.
+            // --------------------------------------------------------
+            // Core: Order
+            // --------------------------------------------------------
             {
               name: "dev.ucp.shopping.order",
               version: UCP_VERSION,
-              spec: "https://ucp.dev/specs/order",
-              schema: "https://ucp.dev/schemas/shopping/order.json",
+              spec: "https://ucp.dev/latest/specification/checkout/#order-confirmation",
             },
 
-            // ============================================================
+            // --------------------------------------------------------
             // Extension: Discount
-            // ============================================================
-            // Optional capability for applying promotional codes
-            // Extensions are layered on top of core capabilities
+            // --------------------------------------------------------
             {
               name: "dev.ucp.shopping.checkout.discount",
               version: UCP_VERSION,
-              spec: "https://ucp.dev/specs/discount",
-              schema: "https://ucp.dev/schemas/shopping/discount_resp.json",
+              spec: "https://ucp.dev/latest/specification/discount/",
+              config: {
+                supported_codes: ["SAVE10", "FREESHIP", "FLAT20"],
+              },
+            },
+
+            // --------------------------------------------------------
+            // Extension: Fulfillment
+            // --------------------------------------------------------
+            {
+              name: "dev.ucp.shopping.checkout.fulfillment",
+              version: UCP_VERSION,
+              spec: "https://ucp.dev/latest/specification/fulfillment/",
+              config: {
+                supports_shipping: true,
+                supports_pickup: true,
+              },
+            },
+
+            // --------------------------------------------------------
+            // Extension: Buyer Consent
+            // --------------------------------------------------------
+            {
+              name: "dev.ucp.shopping.checkout.buyer_consent",
+              version: UCP_VERSION,
+              spec: "https://ucp.dev/latest/specification/buyer-consent/",
             },
           ],
         },
@@ -83,11 +141,9 @@ discoveryRouter.get("/", (c) => {
     // ======================================================================
     // Payment Handlers
     // ======================================================================
-    // Define how payments can be collected. Each handler represents
-    // a payment method that platforms/agents can use.
     payment: {
       handlers: [
-        // Mock handler for testing - accepts specific tokens
+        // Mock handler for testing
         {
           id: "mock-payment-handler",
           name: "Mock Payment (Testing)",
@@ -98,7 +154,7 @@ discoveryRouter.get("/", (c) => {
           },
         },
 
-        // Example of a card payment handler (like Stripe, PayPal)
+        // Example card payment handler
         {
           id: "card-handler",
           name: "Credit/Debit Card",
@@ -111,6 +167,18 @@ discoveryRouter.get("/", (c) => {
         },
       ],
     },
+
+    // ======================================================================
+    // Signing Keys (demo — not used for actual signing in this demo)
+    // ======================================================================
+    signing_keys: [
+      {
+        kid: "ucp-demo-key-1",
+        kty: "OKP",
+        alg: "EdDSA",
+        use: "sig",
+      },
+    ],
   };
 
   return c.json(profile);

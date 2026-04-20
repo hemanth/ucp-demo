@@ -15,44 +15,62 @@ UCP is an open standard enabling seamless commerce interoperability between plat
 
 | Feature | Status | Description |
 |---------|--------|-------------|
-| Discovery | ✅ Implemented | `/.well-known/ucp` endpoint with capabilities and payment handlers |
-| Checkout Sessions | ✅ Implemented | Full flow: create → update → complete |
+| Discovery | ✅ Implemented | `/.well-known/ucp` with capabilities, payment handlers, signing keys |
+| Catalog | ✅ Implemented | Search and lookup products via UCP catalog capability |
+| Cart | ✅ Implemented | Create, read, update, delete shopping carts |
+| Checkout Sessions | ✅ Implemented | Full flow: create → update → complete → cancel |
+| Fulfillment | ✅ Implemented | Shipping options, express/standard/pickup/overnight |
+| Discounts | ✅ Implemented | Promo codes: `SAVE10`, `FREESHIP`, `FLAT20` |
+| Buyer Consent | ✅ Implemented | Terms, privacy, marketing opt-in |
+| Orders | ✅ Implemented | Get/list orders with tracking numbers |
 | Debug Mode | ✅ Implemented | Toggle to see actual API calls in real-time |
 | Payment | ⚡ Mocked | Test tokens only, no real charges |
 | Storage | ⚡ Mocked | In-memory, resets each session |
+
+**Spec Version:** `v2026-04-08`
 
 ## Architecture
 
 ```mermaid
 graph LR
-    A[Browser] --> B["Firebase Hosting<br/>ucp-demo.web.app"]
+    A[Browser/Agent] --> B["Firebase Hosting<br/>ucp-demo.web.app"]
     B --> C["Static Files<br/>HTML/CSS/JS"]
     A --> D["Cloudflare Worker<br/>ucp-demo-api.hemanthhm.workers.dev"]
     D --> E["Discovery API"]
-    D --> F["Shopping API"]
+    D --> F["Catalog API"]
+    D --> G["Shopping API"]
 ```
 
-### Checkout Flow
+### End-to-End Flow
 
 ```mermaid
 sequenceDiagram
-    participant B as Browser
-    participant API as Cloudflare Worker
+    participant A as Agent/Platform
+    participant API as UCP Merchant
 
-    B->>API: GET /.well-known/ucp
-    API-->>B: Discovery profile (capabilities, payment handlers)
+    A->>API: GET /.well-known/ucp
+    API-->>A: Discovery profile (capabilities, handlers, keys)
 
-    B->>API: GET /api/shopping/products
-    API-->>B: Product catalog
+    A->>API: POST /api/catalog/search
+    API-->>A: Matching products
 
-    B->>API: POST /api/shopping/checkout-sessions
-    API-->>B: Checkout session (id, line_items, totals)
+    A->>API: POST /api/shopping/cart
+    API-->>A: Cart with items & subtotal
 
-    B->>API: PUT /api/shopping/checkout-sessions/:id
-    API-->>B: Updated session (buyer_info, payment)
+    A->>API: POST /api/shopping/checkout-sessions
+    API-->>A: Checkout session + fulfillment options
 
-    B->>API: POST /api/shopping/checkout-sessions/:id/complete
-    API-->>B: Completed order
+    A->>API: PUT /api/shopping/checkout-sessions/:id
+    API-->>A: Updated (buyer, fulfillment, payment, consent)
+
+    A->>API: POST /api/shopping/checkout-sessions/:id/discount
+    API-->>A: Discount applied, totals recalculated
+
+    A->>API: POST /api/shopping/checkout-sessions/:id/complete
+    API-->>A: Order confirmation + tracking
+
+    A->>API: GET /api/shopping/orders/:id
+    API-->>A: Full order details
 ```
 
 ## Local Development
@@ -64,23 +82,69 @@ npm install
 # Run dev server
 npm run dev
 
+# Run E2E client test (in another terminal)
+npm run client
+
 # Open http://localhost:3000
 ```
 
 ## API Endpoints
 
+### Discovery
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/.well-known/ucp` | GET | UCP Discovery profile |
-| `/api/shopping/products` | GET | List products |
-| `/api/shopping/checkout-sessions` | POST | Create checkout |
-| `/api/shopping/checkout-sessions/:id` | GET/PUT | Get/Update checkout |
+
+### Catalog (`dev.ucp.catalog`)
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/catalog/search` | POST | Search products (query, filters, pagination) |
+| `/api/catalog/items/:id` | GET | Look up a single product |
+
+### Cart (`dev.ucp.cart`)
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/shopping/cart` | POST | Create cart |
+| `/api/shopping/cart/:id` | GET | Get cart |
+| `/api/shopping/cart/:id` | PUT | Update cart items |
+| `/api/shopping/cart/:id` | DELETE | Delete cart |
+
+### Checkout (`dev.ucp.shopping.checkout`)
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/shopping/checkout-sessions` | POST | Create checkout (or from `cart_id`) |
+| `/api/shopping/checkout-sessions/:id` | GET | Get checkout |
+| `/api/shopping/checkout-sessions/:id` | PUT | Update checkout |
 | `/api/shopping/checkout-sessions/:id/complete` | POST | Complete purchase |
+| `/api/shopping/checkout-sessions/:id/cancel` | POST | Cancel checkout |
+| `/api/shopping/checkout-sessions/:id/discount` | POST | Apply promo code |
+| `/api/shopping/checkout-sessions/:id/discount` | DELETE | Remove discount |
+
+### Orders (`dev.ucp.shopping.order`)
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/shopping/orders` | GET | List all orders |
+| `/api/shopping/orders/:id` | GET | Get order by ID |
+
+## UCP Capabilities Implemented
+
+```
+dev.ucp.catalog                              # Product search & lookup
+dev.ucp.catalog.search                       # Text + filtered search
+dev.ucp.catalog.lookup                       # Single item retrieval
+dev.ucp.cart                                 # Cart management
+dev.ucp.shopping.checkout                    # Checkout lifecycle
+dev.ucp.shopping.checkout.discount           # Promo code support
+dev.ucp.shopping.checkout.fulfillment        # Shipping options
+dev.ucp.shopping.checkout.buyer_consent      # Terms & privacy
+dev.ucp.shopping.order                       # Order retrieval
+```
 
 ## Learn More
 
-- [UCP Specification](https://ucp.dev)
+- [UCP Specification](https://ucp.dev/latest/specification/overview/)
 - [UCP GitHub](https://github.com/Universal-Commerce-Protocol/ucp)
+- [UCP Samples](https://github.com/Universal-Commerce-Protocol/samples)
 
 ---
 
