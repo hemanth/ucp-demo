@@ -1,5 +1,5 @@
 /* ============================================================================
-   UCP Demo — Premium Dark Theme
+   UCP Demo - Premium Dark Theme
    v2026-04-08 | Black & White with subtle depth
    ============================================================================ */
 
@@ -333,7 +333,7 @@ code { font-family: var(--font-mono); font-size: 0.8em; background: rgba(255,255
 .back-btn:hover, .mode-switch:hover { border-color: var(--border-hover); color: var(--white); }
 
 /* ============================================================================
-   Agent Flow — API Explorer
+   Agent Flow - API Explorer
    ============================================================================ */
 
 .explorer-main { flex: 1; display: flex; overflow: hidden; }
@@ -469,7 +469,7 @@ code { font-family: var(--font-mono); font-size: 0.8em; background: rgba(255,255
 #api-explanation-body { color: var(--text-muted); font-size: 0.78rem; line-height: 1.65; }
 
 /* ============================================================================
-   Shop Demo — Chat
+   Shop Demo - Chat
    ============================================================================ */
 
 .chat-main { flex: 1; display: flex; overflow: hidden; }

@@ -4,9 +4,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>UCP Demo — Universal Commerce Protocol</title>
+  <title>UCP: Universal Commerce Protocol for AI Agents</title>
   <meta name="description"
-    content="Your AI agent wants to buy something. UCP gives it a way to find merchants, search products, and check out. Through clean APIs, not screen scraping.">
+    content="An open standard that lets AI agents discover merchants, search products, and complete purchases through clean APIs. Interactive reference implementation.">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://ucp-demo.web.app">
+  <meta property="og:title" content="Universal Commerce Protocol - Interactive Reference">
+  <meta property="og:description" content="An open standard that lets AI agents discover merchants, search products, and complete purchases through clean APIs.">
+  <meta property="og:image" content="https://ucp-demo.web.app/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Universal Commerce Protocol - Interactive Reference">
+  <meta name="twitter:description" content="An open standard that lets AI agents discover merchants, search products, and complete purchases through clean APIs.">
+  <meta name="twitter:image" content="https://ucp-demo.web.app/og-image.png">
+
   <link rel="stylesheet" href="/styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -55,7 +71,7 @@
           <div class="value-card">
             <div class="value-icon">🤖</div>
             <h3>Agent Commerce</h3>
-            <p>AI agents discover merchant capabilities and complete purchases programmatically — no browser needed.</p>
+            <p>AI agents discover merchant capabilities and complete purchases programmatically. No browser needed.</p>
           </div>
           <div class="value-card">
             <div class="value-icon">🔌</div>
@@ -82,7 +98,7 @@
             <div class="flow-vstep-content">
               <div class="flow-vstep-label">Discovery</div>
               <div class="flow-vstep-code">GET /.well-known/ucp</div>
-              <div class="flow-vstep-desc">Agent fetches the merchant's discovery profile — capabilities, payment handlers, endpoints.</div>
+              <div class="flow-vstep-desc">Agent fetches the merchant's discovery profile: capabilities, payment handlers, and endpoints.</div>
             </div>
           </div>
           <div class="flow-vline"></div>
@@ -166,7 +182,7 @@
   </div>
 
   <!-- ========================================================================
-       Agent Flow — API Explorer
+       Agent Flow - API Explorer
        ======================================================================== -->
   <div id="agent-app" class="demo-app">
     <header class="header">
@@ -245,7 +261,7 @@
           <div class="api-req-res">
             <div class="api-section-header">
               <span class="api-section-label">Response</span>
-              <span class="api-status-badge" id="res-status">—</span>
+              <span class="api-status-badge" id="res-status">-</span>
               <span class="api-duration" id="res-duration"></span>
             </div>
             <pre class="api-code response" id="res-body"><span class="placeholder">Click "Execute →" to run this step</span></pre>
@@ -262,7 +278,7 @@
   </div>
 
   <!-- ========================================================================
-       Shop Demo — Chat Experience
+       Shop Demo - Chat Experience
        ======================================================================== -->
   <div id="shop-app" class="demo-app">
     <header class="header">

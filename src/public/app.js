@@ -1,8 +1,8 @@
 /**
- * UCP Demo — Dual Mode App
+ * UCP Demo - Dual Mode App
  *
- * Mode 1: Agent Flow — Step-by-step API explorer showing raw requests/responses
- * Mode 2: Shop Demo — Chat-style shopping experience powered by UCP APIs
+ * Mode 1: Agent Flow - Step-by-step API explorer showing raw requests/responses
+ * Mode 2: Shop Demo - Chat-style shopping experience powered by UCP APIs
  *
  * UCP Spec v2026-04-08
  */
@@ -11,7 +11,7 @@ const API_BASE = 'https://ucp-demo-api.hemanthhm.workers.dev/api';
 const DISCOVERY_URL = 'https://ucp-demo-api.hemanthhm.workers.dev/.well-known/ucp';
 
 // ============================================================================
-// Navigation — Hash-based routing (#agent, #shop)
+// Navigation - Hash-based routing (#agent, #shop)
 // ============================================================================
 
 let currentMode = null;
@@ -34,7 +34,7 @@ function showDemo(mode, pushState = true) {
   }
 
   if (pushState) window.location.hash = mode;
-  document.title = `UCP Demo — ${mode === 'agent' ? 'Agent Flow' : 'Shop Demo'}`;
+  document.title = `UCP - ${mode === 'agent' ? 'Agent Flow' : 'Shop Demo'}`;
 }
 
 function showLanding(pushState = true) {
@@ -43,7 +43,7 @@ function showLanding(pushState = true) {
   document.getElementById('shop-app').classList.remove('active');
   currentMode = null;
   if (pushState) history.replaceState(null, '', window.location.pathname);
-  document.title = 'UCP Demo — Universal Commerce Protocol';
+  document.title = 'UCP: Universal Commerce Protocol for AI Agents';
 }
 
 function switchMode(mode) {
@@ -61,7 +61,7 @@ window.addEventListener('hashchange', handleRoute);
 window.addEventListener('DOMContentLoaded', handleRoute);
 
 // ============================================================================
-// ==================   AGENT FLOW — API EXPLORER   ==========================
+// ==================   AGENT FLOW - API EXPLORER   ==========================
 // ============================================================================
 
 const agentState = {
@@ -213,7 +213,7 @@ function renderStep(index) {
     const r = agentState.responses[index];
     showResponse(r.status, r.data, r.duration);
   } else {
-    document.getElementById('res-status').textContent = '—';
+    document.getElementById('res-status').textContent = '-';
     document.getElementById('res-status').className = 'api-status-badge';
     document.getElementById('res-duration').textContent = '';
     document.getElementById('res-body').innerHTML = '<span class="placeholder">Click "Execute →" to run this step</span>';
@@ -307,7 +307,7 @@ function resetAll() {
 }
 
 // ============================================================================
-// ==================   SHOP DEMO — CHAT EXPERIENCE   ========================
+// ==================   SHOP DEMO - CHAT EXPERIENCE   ========================
 // ============================================================================
 
 const shopState = {
@@ -604,7 +604,7 @@ async function processUserMessage(text) {
   else if (l.includes('order') && shopState.orderId) viewOrder();
   else if (l.includes('help')) {
     await assistantSay(
-      "Commands:<br>• <strong>search [query]</strong> — Search catalog<br>• Click products to add to cart<br>" +
+      "Commands:<br>• <strong>search [query]</strong> - Search catalog<br>• Click products to add to cart<br>" +
       "• <strong>cart</strong> / <strong>checkout</strong> / <strong>order</strong><br>" +
       "• Promo codes: <code>SAVE10</code> <code>FREESHIP</code> <code>FLAT20</code>"
     );
